@@ -2,8 +2,10 @@
 #define LEXER_H
 
 #include "libft/libft.h"
+#include <stdio.h>
 
-enum Tokens // This is for the token type
+// Token types
+typedef enum e_token_type
 {
     Word,
     Pipe,
@@ -12,30 +14,34 @@ enum Tokens // This is for the token type
     Append,
     Heredoc,
     End_of_file,
-    Undefined
-};
+    // Undefined to check for later
+} t_token_type;
 
-enum QuoteType // This is for the quote type in the token
+// Quote types
+typedef enum e_quote_type
 {
     No_quotes,
     Single_quotes,
     Double_quotes
-};
+} t_quote_type;
 
-enum Expendable // This is for the expendable type in the token
+// Expendable status
+typedef enum e_expendable
 {
     Not_expendable,
     Expendable
-};
+} t_expendable;
 
-enum Context
+// Lexer context
+typedef enum e_context
 {
     Unquoted,
-    S_Quoted,
-    D_Quoted,
-};
+    Quoted,
+    Separator
+} t_context;
 
-enum State
+// Lexer states
+typedef enum e_state
 {
     In_space,
     In_literal,
@@ -45,26 +51,49 @@ enum State
     In_heredoc,
     In_quote,
     In_double_quote,
-    In_undefined,
     In_param,
     In_EOF
-};
+} t_state;
 
+// Token structure
 typedef struct s_token
 {
     char *value;
-    int type;
-    int quote;
-    int expendable;
+    t_token_type type;
+    t_quote_type quote;
+    t_expendable expendable;
 } t_token;
 
 typedef struct s_lexer
 {
     char *offset;
+    char *input; // This should be the input string to be lexed
     t_list *tokens; // This should be the head of a linked list of tokens
-    int state;
-    int context;
+    t_state state;
+    t_context context;
 } t_lexer;
 
+// Lexer helpers
+int is_whitespace(char c);
+int is_quote(char c);
+int is_redirect(char c);
+int is_seperator(char c);
+int is_valid_param_start(char *str);
+int is_valid_param_char(char c);
+int contains_parameter(char *value);
 
+// Lexer initialization and cleanup
+t_lexer *init_lexer(const char *input);
+void free_lexer(t_lexer *lexer);
+
+// Token management
+t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expendable expendable);
+void free_token(t_token *token);
+void append_token(t_lexer *lexer, t_token *token);
+
+// Lexer state management
+void set_state(t_lexer *lexer, char current_char);
+void set_context(t_lexer *lexer, char current_char);
+
+// Lexer processing
 #endif
