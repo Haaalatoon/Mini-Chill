@@ -92,8 +92,10 @@ void free_token(t_token *token);
 void append_token(t_lexer *lexer, t_token *token);
 
 // Lexer state management
-void set_state(t_lexer *lexer, char current_char);
+void set_state(t_lexer *lexer);
 void set_context(t_lexer *lexer, char current_char);
 
-// Lexer processing
+// DEBUGGING
+const char *state_to_str(t_state state);
+const char *context_to_str(t_context context);
 #endif

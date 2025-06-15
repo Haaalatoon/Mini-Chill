@@ -1,27 +1,50 @@
 #include "lexer.h"
 
-void set_state(t_lexer *lexer, char current_char)
+void set_state(t_lexer *lexer)
 {
-    // If we're inside quotes, state is determined by quote type
+    char current_char = *lexer->offset;
+
+    if (current_char == '\0')
+    {
+        lexer->state = In_EOF;
+        return;
+    }
+    if (lexer->state == In_param)
+    {
+        if (is_valid_param_char(current_char))
+            return;
+        else
+        {
+            if (lexer->context == Quoted)
+                lexer->state = In_double_quote;
+            else
+                lexer->state = In_literal;
+        }
+    }
     if (lexer->context == Quoted)
     {
         if (lexer->state == In_quote)
         {
             if (current_char == '\'')
-                lexer->state = In_literal;
+                return;
             else
-                lexer->state = In_quote; // Continue in quote state
+                lexer->state = In_quote;
             return;
         }
         if (lexer->state == In_double_quote)
         {
             if (current_char == '"')
-                lexer->state = In_literal;
+                return;
             else if (current_char == '$' && is_valid_param_start(lexer->offset + 1))
+            {
                 lexer->state = In_param;
+                return;
+            }
             else
+            {
                 lexer->state = In_double_quote;
-            return;
+                return; 
+            }
         }
     }
     if (is_whitespace(current_char))
@@ -31,14 +54,20 @@ void set_state(t_lexer *lexer, char current_char)
     else if (current_char == '<')
     {
         if (*(lexer->offset + 1) == '<')
+        {
             lexer->state = In_heredoc;
+            lexer->offset++;
+        }
         else
             lexer->state = In_redirect;
     }
     else if (current_char == '>')
     {
         if (*(lexer->offset + 1) == '>')
+        {
             lexer->state = In_append;
+            lexer->offset++;
+        }
         else
             lexer->state = In_redirect;
     }
@@ -46,93 +75,57 @@ void set_state(t_lexer *lexer, char current_char)
         lexer->state = In_quote;
     else if (current_char == '"')
         lexer->state = In_double_quote;
-    else if (current_char == '$')
-    {
-        if (is_valid_param_start(lexer->offset + 1))
+    else if (current_char == '$' && is_valid_param_start(lexer->offset + 1))
             lexer->state = In_param;
-        else
-            lexer->state = In_literal;
-    }
-    else if (current_char == '\0')
-    {
-        lexer->state = In_EOF;
-    }
     else
         lexer->state = In_literal;
 }
 
-
-void set_context(t_lexer *lexer, char current_char)
+void set_context(t_lexer *lexer, char c)
 {
-    // if (current_char == '\'')
-    // {
-    //     if (lexer->context == Unquoted)
-    //         lexer->context = Quoted;
-    //     else if (lexer->context == Quoted && lexer->state == In_quote)
-    //         lexer->context = Unquoted;
-    // }
-    // else if (current_char == '"')
-    // {
-    //     if (lexer->context == Unquoted)
-    //         lexer->context = Quoted;
-    //     else if (lexer->context == Quoted && lexer->state == In_double_quote)
-    //         lexer->context = Unquoted;
-    // }
-    // Handle transitions for single quotes
-    if (current_char == '\'' && lexer->state != In_double_quote)
-    {
-        if (lexer->context == Unquoted)
-        {
-            lexer->context = Quoted;
-        }
-        else if (lexer->context == Quoted && lexer->state == In_quote)
-        {
-            lexer->context = Unquoted;
-        }
-    }
-    // Handle transitions for double quotes
-    else if (current_char == '"' && lexer->state != In_quote)
-    {
-        if (lexer->context == Unquoted)
-        {
-            lexer->context = Quoted;
-        }
-        else if (lexer->context == Quoted && lexer->state == In_double_quote)
-        {
-            lexer->context = Unquoted;
-        }
-    }
-    else if (is_whitespace(current_char) || current_char == '|' || current_char == '<' || current_char == '>' || current_char == '\0')
-    {
-        if (lexer->context != Quoted)
-            lexer->context = Separator;
-    }
-    else
-    {
-        if (lexer->context == Separator)
-            lexer->context = Unquoted;
-    }
+    if (c == '\'' && lexer->state == In_quote && lexer->context != Quoted)
+        lexer->context = Quoted;
+    else if (c == '\'' && lexer->context == Quoted)
+        lexer->context = Unquoted;
+
+    else if (c == '"' && lexer->state == In_double_quote && lexer->context != Quoted)
+        lexer->context = Quoted;
+    else if (c == '"' && lexer->context == Quoted)
+        lexer->context = Unquoted;
+
+    else if (lexer->context != Quoted
+             && (is_whitespace(c) || c == '|' || c == '<' || c == '>' || c == '\0'))
+        lexer->context = Separator;
+
+    else if (lexer->context == Separator && !is_seperator(c))
+        lexer->context = Unquoted;
 }
 
-int main(int argc, char **argv)
-{
+// const char *state_to_str(t_state state)
+// {
+//     switch (state)
+//     {
+//         case In_space: return "In_space";
+//         case In_literal: return "In_literal";
+//         case In_pipe: return "In_pipe";
+//         case In_redirect: return "In_redirect";
+//         case In_append: return "In_append";
+//         case In_heredoc: return "In_heredoc";
+//         case In_quote: return "In_quote";
+//         case In_double_quote: return "In_double_quote";
+//         case In_param: return "In_param";
+//         case In_EOF: return "In_EOF";
+//         default: return "Unknown";
+//     }
+// }
 
-    t_lexer *lexer = init_lexer(argv[1]);
-    if (!lexer)
-    {
-        printf("Failed to initialize lexer\n");
-        return 1;
-    }
-
-    char *input = lexer->input;
-    while (*input)
-    {
-        set_state(lexer, *input);
-        set_context(lexer, *input);
-        printf("Current char: '%c', State: %d, Context: %d\n", *input, lexer->state, lexer->context);
-        input++;
-    }
-
-    free_lexer(lexer);
-    return 0;
-}
+// const char *context_to_str(t_context context)
+// {
+//     switch (context)
+//     {
+//         case Unquoted: return "Unquoted";
+//         case Quoted: return "Quoted";
+//         case Separator: return "Separator";
+//         default: return "Unknown";
+//     }
+// }

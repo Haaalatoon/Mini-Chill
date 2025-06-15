@@ -33,7 +33,7 @@ int is_valid_param_start(char *str)
 
 int is_valid_param_char(char c)
 {
-    return (ft_isalnum(c) || c == '_');
+    return (ft_isalnum(c) || c == '_' || c == '?');
 }
 
 int contains_parameter(char *value)
