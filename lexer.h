@@ -37,6 +37,7 @@ typedef enum e_context
 {
     Unquoted,
     Quoted,
+    Double_quoted,
     Separator
 } t_context;
 
@@ -49,8 +50,6 @@ typedef enum e_state
     In_redirect,
     In_append,
     In_heredoc,
-    In_quote,
-    In_double_quote,
     In_param,
     In_EOF
 } t_state;

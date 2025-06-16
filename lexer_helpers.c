@@ -21,7 +21,6 @@ int is_seperator(char c)
 }
 
 // Parameter Expansion Detection
-
 int is_valid_param_start(char *str)
 {
     if (!str || !*str)
@@ -33,6 +32,8 @@ int is_valid_param_start(char *str)
 
 int is_valid_param_char(char c)
 {
+    if (c == '?')
+        return 0;
     return (ft_isalnum(c) || c == '_' || c == '?');
 }
 
