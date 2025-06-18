@@ -25,7 +25,7 @@ int is_valid_param_start(char *str)
 {
     if (!str || !*str)
         return 0;
-    if (*str == '?' || *str == '$')
+    if (*str == '?')
         return 1;
     return (ft_isalpha(*str) || *str == '_');
 }
@@ -33,13 +33,13 @@ int is_valid_param_start(char *str)
 int is_valid_param_char(char c)
 {
     if (c == '?')
-        return 0;
-    return (ft_isalnum(c) || c == '_' || c == '?');
+        return 1;
+    return (ft_isalnum(c) || c == '_');
 }
 
 int contains_parameter(char *value)
 {
-    char *dollar_sign;;
+    char *dollar_sign;
 
     dollar_sign = ft_strchr(value, '$');
     while (dollar_sign)

@@ -33,8 +33,8 @@ int main(void)
     while (*(lexer->offset))
     {
         char c = *(lexer->offset);
-        set_state(lexer);
         set_context(lexer, c);
+        set_state(lexer);
         printf("Char: '%c' (%d) | State: %-20s | Context: %-10s\n",
                 c, c, state_to_str(lexer->state), context_to_str(lexer->context));
 
@@ -42,8 +42,8 @@ int main(void)
     }
 
     // Finally handle EOF marker
-    set_state(lexer);
     set_context(lexer, '\0');
+    set_state(lexer);
     printf("Char: '\\0'        | State: %-20s | Context: %-10s\n",
             state_to_str(lexer->state), context_to_str(lexer->context));
     if (lexer->context == Quoted)

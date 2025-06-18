@@ -12,7 +12,7 @@ typedef enum e_token_type
     Redirect_In,
     Redirect_Out,
     Append,
-    Heredoc,
+    Here_doc,
     End_of_file,
     // Undefined to check for later
 } t_token_type;
@@ -38,20 +38,24 @@ typedef enum e_context
     Unquoted,
     Quoted,
     Double_quoted,
-    Separator
+    Separator,
+    Heredoc
 } t_context;
 
 // Lexer states
 typedef enum e_state
 {
-    In_space,
-    In_literal,
-    In_pipe,
-    In_redirect,
-    In_append,
-    In_heredoc,
-    In_param,
-    In_EOF
+    space,
+    literal,
+    pi_pe,
+    heredoc,
+    redirect_in,
+    redirect_out,
+    append,
+    param_here,
+    single_quote,
+    double_quote,
+    E_OF
 } t_state;
 
 // Token structure
@@ -92,7 +96,7 @@ void append_token(t_lexer *lexer, t_token *token);
 
 // Lexer state management
 void set_state(t_lexer *lexer);
-void set_context(t_lexer *lexer, char current_char);
+void set_context(t_lexer *lexer, char c);
 
 // DEBUGGING
 const char *state_to_str(t_state state);

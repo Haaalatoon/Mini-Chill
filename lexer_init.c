@@ -15,7 +15,7 @@ t_lexer *init_lexer(const char *input)
         return NULL;
     }
     lexer->offset = lexer->input;
-    lexer->state = In_space;
+    lexer->state = space;
     lexer->context = Unquoted;
     lexer->tokens = NULL;
 
