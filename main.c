@@ -33,6 +33,8 @@ int main(void)
     while (*(lexer->offset))
     {
         char c = *(lexer->offset);
+        
+        
         set_context(lexer, c);
         set_state(lexer);
         printf("Char: '%c' (%d) | State: %-20s | Context: %-10s\n",
@@ -42,11 +44,13 @@ int main(void)
     }
 
     // Finally handle EOF marker
+
+    
     set_context(lexer, '\0');
     set_state(lexer);
     printf("Char: '\\0'        | State: %-20s | Context: %-10s\n",
             state_to_str(lexer->state), context_to_str(lexer->context));
-    if (lexer->context == Quoted)
+    if (lexer->context == Quoted || lexer->context == Double_quoted)
     {
         printf("Warning: Unmatched quote detected!\n");
         // Think of a way to handle this 

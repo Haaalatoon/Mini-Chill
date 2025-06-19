@@ -50,3 +50,33 @@ int contains_parameter(char *value)
     }
     return 0;
 }
+
+// Handling Redirect Operators
+void handle_redirect_in(t_lexer *lexer)
+{
+	if (*(lexer->offset + 1) == '<')
+	{
+		lexer->state = heredoc;
+		lexer->context = Heredoc;
+        lexer->offset+=2;
+	}
+	else
+		lexer->state = redirect_in;
+}
+
+void handle_redirect_out(t_lexer *lexer)
+{
+	if (*(lexer->offset + 1) == '>')
+	{
+		lexer->state = append;
+		lexer->offset++;
+	}
+	else
+		lexer->state = redirect_out;
+}
+
+void skip_spaces(t_lexer *lexer)
+{
+    while (lexer->offset && is_whitespace(*(lexer->offset)))
+        lexer->offset++;
+}

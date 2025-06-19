@@ -39,12 +39,14 @@ typedef enum e_context
     Quoted,
     Double_quoted,
     Separator,
-    Heredoc
+    Heredoc,
+    Verbatim
 } t_context;
 
 // Lexer states
 typedef enum e_state
 {
+    initial,
     space,
     literal,
     pi_pe,
@@ -74,6 +76,7 @@ typedef struct s_lexer
     t_list *tokens; // This should be the head of a linked list of tokens
     t_state state;
     t_context context;
+    int is_quoted_here_doc; // Flag to check if we are in a quoted heredoc
 } t_lexer;
 
 // Lexer helpers
@@ -84,6 +87,9 @@ int is_seperator(char c);
 int is_valid_param_start(char *str);
 int is_valid_param_char(char c);
 int contains_parameter(char *value);
+void handle_redirect_in(t_lexer *lexer);
+void handle_redirect_out(t_lexer *lexer);
+void skip_spaces(t_lexer *lexer);
 
 // Lexer initialization and cleanup
 t_lexer *init_lexer(const char *input);
@@ -95,7 +101,7 @@ void free_token(t_token *token);
 void append_token(t_lexer *lexer, t_token *token);
 
 // Lexer state management
-void set_state(t_lexer *lexer);
+t_lexer *set_state(t_lexer *lexer);
 void set_context(t_lexer *lexer, char c);
 
 // DEBUGGING
