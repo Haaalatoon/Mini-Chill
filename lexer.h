@@ -100,7 +100,15 @@ void append_token(t_lexer *lexer, t_token *token);
 t_lexer *set_state(t_lexer *lexer);
 void set_context(t_lexer *lexer, char c);
 
+// Resolving tokens
+void resolve_tokens(t_lexer *lexer);
+void skip_space_sep(t_lexer *lexer);
+
 // DEBUGGING
 const char *state_to_str(t_state state);
 const char *context_to_str(t_context context);
+t_token_type get_token_type(t_state state);
+t_quote_type get_quote_type(t_context context);
+t_expendable get_expandable(t_context context);
+
 #endif

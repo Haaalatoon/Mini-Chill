@@ -84,3 +84,10 @@ void handle_redirect_out(t_lexer *lexer)
 	else
 		lexer->state = redirect_out;
 }
+
+// Resolving
+void skip_space_sep(t_lexer *lexer)
+{
+    if (lexer->state == space && lexer->context == Separator)
+        lexer->offset++;
+}

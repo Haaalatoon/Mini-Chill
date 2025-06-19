@@ -1,28 +1,28 @@
 #include "lexer.h"
 
-// t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expendable expendable)
-// {
-//     t_token *token;
+t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expendable expendable)
+{
+    t_token *token;
 
-//     token = (t_token *)malloc(sizeof(t_token));
-//     if (!token)
-//         return NULL;
-//     if (value)
-//     {
-//         token->value = ft_strdup(value);
-//         if (!token->value)
-//         {
-//             free(token);
-//             return NULL;
-//         }
-//     }
-//     else
-//         token->value = NULL;
-//     token->type = type;
-//     token->quote = quote;
-//     token->expendable = Not_expendable;
-//     return token;
-// }
+    token = (t_token *)malloc(sizeof(t_token));
+    if (!token)
+        return NULL;
+    if (value)
+    {
+        token->value = ft_strdup(value);
+        if (!token->value)
+        {
+            free(token);
+            return NULL;
+        }
+    }
+    else
+        token->value = NULL;
+    token->type = type;
+    token->quote = quote;
+    token->expendable = expendable;
+    return token;
+}
 
 void free_token(t_token *token)
 {
