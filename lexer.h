@@ -39,14 +39,11 @@ typedef enum e_context
     Quoted,
     Double_quoted,
     Separator,
-    Heredoc,
-    Verbatim
 } t_context;
 
 // Lexer states
 typedef enum e_state
 {
-    initial,
     space,
     literal,
     pi_pe,
@@ -76,7 +73,6 @@ typedef struct s_lexer
     t_list *tokens; // This should be the head of a linked list of tokens
     t_state state;
     t_context context;
-    int is_quoted_here_doc; // Flag to check if we are in a quoted heredoc
 } t_lexer;
 
 // Lexer helpers

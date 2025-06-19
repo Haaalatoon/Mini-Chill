@@ -52,13 +52,23 @@ int contains_parameter(char *value)
 }
 
 // Handling Redirect Operators
+
+static int count_spaces_ahead(char *offset)
+{
+    int count = 0;
+    while (offset && is_whitespace(*offset)) {
+        count++;
+        offset++;
+    }
+    return count;
+}
+
 void handle_redirect_in(t_lexer *lexer)
 {
 	if (*(lexer->offset + 1) == '<')
 	{
 		lexer->state = heredoc;
-		lexer->context = Heredoc;
-        lexer->offset+=2;
+        lexer->offset += 1 + count_spaces_ahead(lexer->offset + 2);
 	}
 	else
 		lexer->state = redirect_in;
@@ -73,10 +83,4 @@ void handle_redirect_out(t_lexer *lexer)
 	}
 	else
 		lexer->state = redirect_out;
-}
-
-void skip_spaces(t_lexer *lexer)
-{
-    while (lexer->offset && is_whitespace(*(lexer->offset)))
-        lexer->offset++;
 }

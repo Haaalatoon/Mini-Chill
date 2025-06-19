@@ -7,20 +7,39 @@ t_lexer *set_state(t_lexer *lexer)
 	current_char = *(lexer->offset);
 	if (current_char == '\0')
 		lexer->state = E_OF;
+	else if (lexer->state == heredoc)
+	{
+		if (lexer->context == Separator)
+		{
+			if (is_whitespace(current_char))
+				lexer->state = space;
+			else if (current_char == '|')
+				lexer->state = pi_pe;
+			else if (current_char == '<')
+				handle_redirect_in(lexer);
+			else if (current_char == '>')
+				handle_redirect_out(lexer);
+		}
+	}
 	else if (current_char == '\'' && lexer->context != Double_quoted)
 		lexer->state = single_quote;
 	else if (current_char == '"' && lexer->context != Quoted)
 		lexer->state = double_quote;
-	else if (current_char == '$' && lexer->context != Quoted && lexer->context != Heredoc && is_valid_param_start(lexer->offset + 1))
+	else if (current_char == '$' && lexer->context != Quoted && is_valid_param_start(lexer->offset + 1))
 		lexer->state = param_here;
-	else if (is_whitespace(current_char) && lexer->context != Heredoc && lexer->context != Quoted && lexer->context != Double_quoted)
-		lexer->state = space;
-	else if (current_char == '|')
-		lexer->state = pi_pe;
-	else if (current_char == '<')
-		handle_redirect_in(lexer);
-	else if (current_char == '>')
-		handle_redirect_out(lexer);
+	else if (lexer->context != Quoted && lexer->context != Double_quoted)
+	{
+		if (is_whitespace(current_char))
+			lexer->state = space;
+		else if (current_char == '<')
+			handle_redirect_in(lexer);
+		else if (current_char == '>')
+			handle_redirect_out(lexer);
+		else if (current_char == '|')
+			lexer->state = pi_pe;
+		else
+			lexer->state = literal;
+	}
 	else 
 		lexer->state = literal;
 	return (lexer);
@@ -28,18 +47,7 @@ t_lexer *set_state(t_lexer *lexer)
 
 void set_context(t_lexer *lexer, char c)
 {
-	if (lexer->context == Heredoc) {
-        static int in_quotes = 0;
-        
-        if (c == '"' || c == '\'')
-            in_quotes = !in_quotes;
-        else if (is_seperator(c) && !in_quotes) {
-            lexer->context = Separator;
-            in_quotes = 0; // Reset quote tracking
-        }
-        return;
-    }
-	else if (c == '\'' && lexer->context == Unquoted)
+	if (c == '\'' && lexer->context == Unquoted)
 		lexer->context = Quoted;
 	else if (c == '\'' && lexer->context == Quoted)
 		lexer->context = Unquoted;
@@ -88,7 +96,6 @@ const char *context_to_str(t_context context)
 		case Quoted: return "Quoted";
 		case Double_quoted: return "Double_quoted";
 		case Separator: return "Separator";
-		case Heredoc: return "Heredoc";
 		default: return "Unknown";
 	}
 }

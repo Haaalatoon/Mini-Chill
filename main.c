@@ -50,11 +50,6 @@ int main(void)
     set_state(lexer);
     printf("Char: '\\0'        | State: %-20s | Context: %-10s\n",
             state_to_str(lexer->state), context_to_str(lexer->context));
-    if (lexer->context == Quoted || lexer->context == Double_quoted)
-    {
-        printf("Warning: Unmatched quote detected!\n");
-        // Think of a way to handle this 
-    }
 
     free_lexer(lexer);
     free(input);
