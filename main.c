@@ -149,20 +149,20 @@ int main(void)
         lexer->offset = lexer->input;
         resolve_tokens(lexer);
 
-        // Show tokens
-        printf("\nResolved Tokens:\n");
-        t_list *cur = lexer->tokens;
-        while (cur)
-        {
-            t_token *tok = (t_token *)cur->content;
-            printf("Token: %-10s | Type: %-12s | Quote: %-15s | Expandable: %s\n",
-                tok->value,
-             token_type_to_str(tok->type),
-             quote_type_to_str(tok->quote),
-            expendable_to_str(tok->expendable));
+        // // Show tokens
+        // printf("\nResolved Tokens:\n");
+        // t_list *cur = lexer->tokens;
+        // while (cur)
+        // {
+        //     t_token *tok = (t_token *)cur->content;
+        //     printf("Token: %-10s | Type: %-12s | Quote: %-15s | Expandable: %s\n",
+        //         tok->value,
+        //      token_type_to_str(tok->type),
+        //      quote_type_to_str(tok->quote),
+        //     expendable_to_str(tok->expendable));
 
-            cur = cur->next;
-        }
+        //     cur = cur->next;
+        // }
 
         free_lexer(lexer);
         free(input);
