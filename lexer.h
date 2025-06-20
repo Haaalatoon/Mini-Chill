@@ -62,7 +62,6 @@ typedef struct s_token
 {
     char *value;
     t_token_type type;
-    t_quote_type quote;
     t_expendable expendable;
 } t_token;
 
@@ -92,7 +91,7 @@ t_lexer *init_lexer(const char *input);
 void free_lexer(t_lexer *lexer);
 
 // Token management
-t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expendable expendable);
+t_token *create_token(char *value, t_token_type type, t_expendable expendable);
 void free_token(t_token *token);
 void append_token(t_lexer *lexer, t_token *token);
 
@@ -109,6 +108,6 @@ const char *state_to_str(t_state state);
 const char *context_to_str(t_context context);
 t_token_type get_token_type(t_state state);
 t_quote_type get_quote_type(t_context context);
-t_expendable get_expandable(t_context context);
+t_expendable get_expandable(t_state state);
 
 #endif

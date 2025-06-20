@@ -1,6 +1,6 @@
 #include "lexer.h"
 
-t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expendable expendable)
+t_token *create_token(char *value, t_token_type type, t_expendable expendable)
 {
     t_token *token;
 
@@ -19,7 +19,6 @@ t_token *create_token(char *value, t_token_type type, t_quote_type quote, t_expe
     else
         token->value = NULL;
     token->type = type;
-    token->quote = quote;
     token->expendable = expendable;
     return token;
 }

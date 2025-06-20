@@ -28,58 +28,98 @@ t_quote_type get_quote_type(t_context context)
     return No_quotes;
 }
 
-t_expendable get_expandable(t_context context)
+t_expendable get_expandable(t_state state)
 {
-    if (context == Double_quoted || context == Unquoted)
-        return Expendable;
-    return Not_expendable;
+    if (state ==  param_here)
+        return Expendable; // param_here is not expendable
+    else
+         return Not_expendable; // default for other states
 }
 
 
 void resolve_tokens(t_lexer *lexer)
 {
-	char *start = lexer->offset;
+    lexer->offset = lexer->input;
+    char *token_start = NULL;
 
-	while (*(lexer->offset))
-	{
-		set_context(lexer, *lexer->offset);
-		set_state(lexer);
+    while (*(lexer->offset))
+    {
+        char c = *(lexer->offset);
+        set_context(lexer, c);
+        set_state(lexer);
 
-		if (lexer->state == space)
-		{
-			lexer->offset++;
-			continue;
-		}
-
-		start = lexer->offset;
-        t_context start_context = lexer->context;
-        t_state start_state = lexer->state;
-
-        while (*(lexer->offset))
+        // Quote handling
+        if (lexer->state == single_quote)
         {
-            char c = *(lexer->offset);
-            set_context(lexer, c);
+            lexer->offset++; // skip opening '
+            token_start = lexer->offset;
+            while (*(lexer->offset) && *(lexer->offset) != '\'')
+                lexer->offset++;
+            char *chunk = ft_substr(token_start, 0, lexer->offset - token_start);
+            t_token *token = create_token(chunk, Word, Not_expendable);
+            append_token(lexer, token);
+            free(chunk);
+            lexer->offset++; // skip closing '
+            continue;
+        }
+        else if (lexer->state == double_quote)
+        {
+            lexer->offset++; // skip opening "
+            token_start = lexer->offset;
+            while (*(lexer->offset) && *(lexer->offset) != '"')
+                lexer->offset++;
+            char *chunk = ft_substr(token_start, 0, lexer->offset - token_start);
+            t_token *token = create_token(chunk, Word, Expendable);
+            append_token(lexer, token);
+            free(chunk);
+            lexer->offset++; // skip closing "
+            continue;
+        }
+
+        // Space = token boundary
+        if (lexer->state == space)
+        {
+            lexer->offset++;
+            continue;
+        }
+
+        // Redirection, pipe
+        if (lexer->state == pi_pe || lexer->state == redirect_in || lexer->state == redirect_out || lexer->state == append || lexer->state == heredoc)
+        {
+            t_token_type type = get_token_type(lexer->state);
+            char *op = ft_substr(lexer->offset, 0, 1);
+            t_token *token = create_token(op, type, Not_expendable);
+            append_token(lexer, token);
+            free(op);
+            lexer->offset++;
+            continue;
+        }
+
+        // Default literal/param/word
+        token_start = lexer->offset;
+        while (*(lexer->offset) &&
+               !is_seperator(*(lexer->offset)) &&
+               !is_quote(*(lexer->offset)))
+        {
+            set_context(lexer, *(lexer->offset));
             set_state(lexer);
-
-            if (lexer->state == space || lexer->state != start_state)
-                break;
-
             lexer->offset++;
         }
 
-        // Extract and create token
-        int len = lexer->offset - start;
-        if (len > 0)
+        if (lexer->offset > token_start)
         {
-            char *value = ft_substr(start, 0, len);
-            t_token *token = create_token(
-                value,
-                get_token_type(start_state),
-                get_quote_type(start_context),
-                get_expandable(start_context)
-            );
+            char *chunk = ft_substr(token_start, 0, lexer->offset - token_start);
+            t_token *token;
+            if (get_expandable(lexer->state) == Expendable)
+            {
+                token = create_token(chunk, Word, Expendable);
+            }
+            else
+            {
+                token = create_token(chunk, Word, Not_expendable);
+            }
             append_token(lexer, token);
-            free(value);
+            free(chunk);
         }
     }
 }
