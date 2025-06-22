@@ -103,6 +103,8 @@ void resolve_tokens(t_lexer *lexer)
     lexer->offset = lexer->input;
     char *token_content = NULL;
     t_expendable expend = Not_expendable;
+    unsigned long current_mask = 0;
+    size_t pos = 0; // position in the token
     
     while (*(lexer->offset))
     {
@@ -112,16 +114,29 @@ void resolve_tokens(t_lexer *lexer)
         // Skip whitespace that separates tokens
         if (lexer->state == space && lexer->context == Separator)
         {
-            // Finalize current token if we have one
+            // // Finalize current token if we have one
+            // if (token_content && *token_content)
+            // {
+            //     append_token(lexer, create_token(token_content, Word, expend));
+            //     free(token_content);
+            //     token_content = NULL;
+            //     expend = Not_expendable;
+            // }
+            // lexer->offset++;
+            // continue;
             if (token_content && *token_content)
             {
-                append_token(lexer, create_token(token_content, Word, expend));
+                t_token *token = create_token(token_content, Word, expend);
+                token->expansion_mask = current_mask;  // Add this line
+                append_token(lexer, token);
                 free(token_content);
                 token_content = NULL;
                 expend = Not_expendable;
+                current_mask = 0;  // Add this line
             }
             lexer->offset++;
             continue;
+
         }
         
         // Handle operators (they are always separate tokens)
@@ -132,10 +147,18 @@ void resolve_tokens(t_lexer *lexer)
             {
                 if (lexer->in_heredoc_delim)
                     expend = Not_expendable;
-                append_token(lexer, create_token(token_content, Word, expend));
+                // append_token(lexer, create_token(token_content, Word, expend));
+                
+                // free(token_content);
+                // token_content = NULL;
+                // expend = Not_expendable;
+                t_token *token = create_token(token_content, Word, expend);
+                token->expansion_mask = current_mask;  // Add this line
+                append_token(lexer, token);
                 free(token_content);
                 token_content = NULL;
                 expend = Not_expendable;
+                current_mask = 0;  // Add this line
             }
             
             // Create operator token
@@ -160,8 +183,20 @@ void resolve_tokens(t_lexer *lexer)
             // Add content to current token
             if (lexer->state == literal || lexer->state == param_here)
             {
+                // if (lexer->state == param_here)
+                //     expend = Expendable;
+                
+                // char *new_content = add_char_to_string(token_content, *(lexer->offset));
+                // free(token_content);
+                // token_content = new_content;
                 if (lexer->state == param_here)
+                {
+                    // Set bit for this $ position
+                    int pos = token_content ? ft_strlen(token_content) : 0;  // Add this line
+                    if (pos < 64)  // Add this line
+                        current_mask |= (1UL << pos);  // Add this line
                     expend = Expendable;
+                }
                 
                 char *new_content = add_char_to_string(token_content, *(lexer->offset));
                 free(token_content);
@@ -169,12 +204,19 @@ void resolve_tokens(t_lexer *lexer)
             }
         }
         lexer->offset++;
+        pos++;
     }
     if (token_content && *token_content)
     {
+        // if (lexer->in_heredoc_delim)
+        //     expend = Not_expendable;
+        // append_token(lexer, create_token(token_content, Word, expend));
+        // free(token_content);
         if (lexer->in_heredoc_delim)
             expend = Not_expendable;
-        append_token(lexer, create_token(token_content, Word, expend));
+        t_token *token = create_token(token_content, Word, expend);
+        token->expansion_mask = current_mask;  // Add this line
+        append_token(lexer, token);
         free(token_content);
     }
     

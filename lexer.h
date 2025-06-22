@@ -64,6 +64,7 @@ typedef struct s_token
     char *value;
     t_token_type type;
     t_expendable expendable;
+    unsigned long expansion_mask;
 } t_token;
 
 typedef struct s_lexer
