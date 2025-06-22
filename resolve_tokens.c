@@ -16,6 +16,8 @@ t_token_type get_token_type(t_state state)
         return Here_doc;
     if (state == E_OF)
         return End_of_file;
+    if (state == Delim)
+        return Delim;
     return Word; // default
 }
 
@@ -28,288 +30,155 @@ t_quote_type get_quote_type(t_context context)
     return No_quotes;
 }
 
+// Helper function to check if state represents an operator
+int is_operator_state(t_state state)
+{
+    return (state == pi_pe || state == redirect_in || 
+            state == redirect_out || state == append || 
+            state == heredoc);
+}
 
-// void resolve_tokens(t_lexer *lexer)
-// {
-//     lexer->offset = lexer->input;
+// Helper function to check if state represents content
+int is_content_state(t_state state)
+{
+    return (state == literal || state == param_here || 
+            state == single_quote || state == double_quote);
+}
 
-//     while (*(lexer->offset))
-//     {
-//         set_context(lexer, *(lexer->offset));
-//         set_state(lexer);
+// Helper function to create operator tokens
+void create_operator_token(t_lexer *lexer)
+{
+    if (lexer->state == heredoc)
+    {
+        append_token(lexer, create_token("<<", Here_doc, Not_expendable));
+        lexer->offset++;
+    }
+    else if (lexer->state == append)
+    {
+        append_token(lexer, create_token(">>", Append, Not_expendable));
+        lexer->offset++; // Skip second character (main loop will skip first)
+    }
+    else if (lexer->state == redirect_in)
+    {
+        append_token(lexer, create_token("<", Redirect_In, Not_expendable));
+        lexer->offset++; // Skip next character if any
+    }
+    else if (lexer->state == redirect_out)
+    {
+        append_token(lexer, create_token(">", Redirect_Out, Not_expendable));
+        lexer->offset++; // Skip next character if any
+    }
+    else if (lexer->state == pi_pe)
+    {
+        append_token(lexer, create_token("|", Pipe, Not_expendable));
+        lexer->offset++; // Skip next character if any
+    }
+}
 
-//         // Skip whitespace
-//         if (lexer->state == space)
-//         {
-//             lexer->offset++;
-//             continue;
-//         }
-
-//         // Handle special separator tokens (|, <, >, etc.)
-//         if (lexer->state == pi_pe || lexer->state == redirect_in || lexer->state == redirect_out || lexer->state == append || lexer->state == heredoc)
-//         {
-//             t_token_type type = get_token_type(lexer->state);
-//             int len = (lexer->state == append || lexer->state == heredoc) ? 2 : 1;
-//             char *op = ft_substr(lexer->offset, 0, len);
-//             append_token(lexer, create_token(op, type, Not_expendable));
-//             free(op);
-//             lexer->offset += len;
-//             continue;
-//         }
-		
-//         // Collect full literal token (quoted/unquoted) until space or separator
-//         char *merged = ft_strdup("");
-//         t_expendable expend = Not_expendable;
-
-//         while (*(lexer->offset) && !is_seperator(*(lexer->offset)))
-//         {
-//             if (is_quote(*(lexer->offset)))
-//             {
-//                 char quote = *(lexer->offset++);
-//                 char *start = lexer->offset;
-//                 int part_expend = Not_expendable;
-
-//                 while (*(lexer->offset) && *(lexer->offset) != quote)
-//                 {
-// 					set_context(lexer, *(lexer->offset));
-//         			set_state(lexer);
-// 					if (lexer->state == param_here)
-//                         part_expend = Expendable;
-//                     lexer->offset++;
-//                 }
-
-//                 char *chunk = ft_substr(start, 0, lexer->offset - start);
-//                 char *tmp = merged;
-//                 merged = ft_strjoin(tmp, chunk);
-//                 free(chunk);
-//                 free(tmp);
-
-//                 if (part_expend == Expendable)
-//                     expend = Expendable;
-
-//                 if (*(lexer->offset) == quote)
-//                     lexer->offset++; // skip closing quote
-//             }
-//             else if (lexer->state == param_here)
-//             {
-//                 char *start = lexer->offset;
-//                 lexer->offset++; // skip $
-//                 while (is_valid_param_char(*(lexer->offset)))
-//                     lexer->offset++;
-//                 int len = lexer->offset - start;
-
-//                 char *chunk = ft_substr(start, 0, len);
-//                 char *tmp = merged;
-//                 merged = ft_strjoin(tmp, chunk);
-//                 free(chunk);
-//                 free(tmp);
-//                 expend = Expendable;
-//             }
-//             else
-//             {
-//                 char *chunk = ft_substr(lexer->offset, 0, 1);
-//                 char *tmp = merged;
-//                 merged = ft_strjoin(tmp, chunk);
-//                 free(chunk);
-//                 free(tmp);
-//                 lexer->offset++;
-//             }
-// 			if (*(lexer->offset))
-//             {
-//                 set_context(lexer, *(lexer->offset));
-//                 set_state(lexer);
-//             }
-//         }
-//         if (*merged)
-//             append_token(lexer, create_token(merged, Word, expend));
-//             // No need to free `merged` here, already passed to create_token
-// 		free(merged);
-//     }
-// }
-
-// void resolve_tokens(t_lexer *lexer)
-// {
-//     lexer->offset = lexer->input;
-//     t_expendable expend = Not_expendable;
-//     char *start = NULL;
-// 	char *chunk;
-
-//     while (*(lexer->offset))
-//     {
-//         set_context(lexer, *(lexer->offset));
-//         set_state(lexer);
-
-//         if (lexer->state == space && !start)
-//         {
-//             lexer->offset++;
-//             continue;
-//         }
-//         // Start new token if we don't have one
-//         if (!start)
-//             start = lexer->offset;
-
-//         if (lexer->state == param_here)
-//             expend = Expendable;
-
-//         // Create token when we hit space or EOF
-//         if ((lexer->state == space || !*(lexer->offset)) && start)
-//         {
-//             chunk = ft_substr(start, 0, lexer->offset - start);
-//             append_token(lexer, create_token(chunk, Word, expend));
-//             free(chunk);
-//             start = NULL;
-//             expend = Not_expendable;
-//         }
-//         lexer->offset++;
-//     }
-
-//     if (start)
-//     {
-//         chunk = ft_substr(start, 0, lexer->offset - start);
-//         append_token(lexer, create_token(chunk, Word, expend));
-//         free(chunk);
-//     }
-// }
-
-
-// void resolve_tokens(t_lexer *lexer)
-// {
-//     lexer->offset = lexer->input;
-//     t_expendable expend = Not_expendable;
-//     char *chunk;
-//     char *start;
-//     char *tmp;
-//     char *merged;
-
-//     while (*(lexer->offset))
-//     {
-//         set_context(lexer, *(lexer->offset));
-//         set_state(lexer);
-
-//         if (lexer->state == space)
-//         {
-//             lexer->offset++;
-//             continue;
-//         }
-        
-//         // handle redirect later
-
-//         while (*(lexer->offset) && !is_seperator(*(lexer->offset)))
-//         {
-//             set_context(lexer, *(lexer->offset));
-//             set_state(lexer);
-//             if (lexer->state == single_quote || lexer->state == double_quote)
-//             {
-//                 start = ++lexer->offset; // skip opening quote
-//                 while (lexer->state == literal || lexer->state == param_here)
-//                 {
-//                     set_context(lexer, *(lexer->offset));
-//                     set_state(lexer);
-//                     if (lexer->state == param_here)
-//                         expend = Expendable;
-//                     lexer->offset++;
-//                 }
-//                 chunk = ft_substr(start, 0, lexer->offset - start - 1); // skip closing quote
-//                 tmp = merged;
-//                 merged = ft_strjoin(tmp, chunk);
-//                 free(chunk);
-//                 free(tmp);
-//             }
-//             else
-//             {
-//                 chunk = ft_substr(lexer->offset, 0, 1);
-//                 tmp = merged;
-//                 merged = ft_strjoin(tmp, chunk);
-//                 free(chunk);
-//                 free(tmp);
-//                 lexer->offset++;
-//             }
-//         }
-//     }
-//     if (*(lexer->offset))
-//     {
-//         set_context(lexer, *(lexer->offset));
-//         set_state(lexer);
-//     }
-//     if (merged)
-//     {
-//         append_token(lexer, create_token(merged, Word, expend));
-//         // free(merged);
-//         merged = NULL;
-//     }
-// }
+// Helper function to add character to string
+char *add_char_to_string(char *str, char c)
+{
+    int len = str ? ft_strlen(str) : 0;
+    char *new_str = malloc(len + 2);
+    if (!new_str)
+        return str;
+    
+    if (str)
+    {
+        ft_strlcpy(new_str, str, len + 1);
+        new_str[len] = c;
+        new_str[len + 1] = '\0';
+    }
+    else
+    {
+        new_str[0] = c;
+        new_str[1] = '\0';
+    }
+    
+    return new_str;
+}
 
 void resolve_tokens(t_lexer *lexer)
 {
     lexer->offset = lexer->input;
-    char *token = NULL;
+    char *token_content = NULL;
     t_expendable expend = Not_expendable;
-    int after_operator = 0; 
-
+    
     while (*(lexer->offset))
     {
         set_context(lexer, *(lexer->offset));
         set_state(lexer);
-
-        // Skip spaces between tokens
-        if (lexer->state == space && (!token || after_operator))
+        
+        // Skip whitespace that separates tokens
+        if (lexer->state == space && lexer->context == Separator)
         {
+            // Finalize current token if we have one
+            if (token_content && *token_content)
+            {
+                append_token(lexer, create_token(token_content, Word, expend));
+                free(token_content);
+                token_content = NULL;
+                expend = Not_expendable;
+            }
             lexer->offset++;
             continue;
         }
-
-        // Start new token
-        if (!token)
-            token = ft_strdup("");
-
-        // Handle operators
-        if (lexer->state == pi_pe || lexer->state == redirect_in || 
-            lexer->state == redirect_out || lexer->state == append || 
-            lexer->state == heredoc)
+        
+        // Handle operators (they are always separate tokens)
+        if (is_operator_state(lexer->state))
         {
-            // Handle previous token
-            if (*token)
+            // Finalize current word token first
+            if (token_content && *token_content)
             {
-                append_token(lexer, create_token(token, Word, expend));
-                free(token);
-                token = NULL;
+                if (lexer->in_heredoc_delim)
+                    expend = Not_expendable;
+                append_token(lexer, create_token(token_content, Word, expend));
+                free(token_content);
+                token_content = NULL;
                 expend = Not_expendable;
             }
-
+            
             // Create operator token
-            int len = (lexer->state == append || lexer->state == heredoc) ? 2 : 1;
-            char *op = ft_substr(lexer->offset, 0, len);
-            append_token(lexer, create_token(op, get_token_type(lexer->state), Not_expendable));
-            free(op);
-            lexer->offset+= len;
-            after_operator = 1;
+            create_operator_token(lexer);
             continue;
         }
-
-        if (lexer->state == literal || lexer->state == param_here)
+        
+        // Handle content that becomes part of a word token
+        if (is_content_state(lexer->state))
         {
-            char *tmp = token;
-            char c[2] = {*(lexer->offset), '\0'};
-            token = ft_strjoin(tmp, c);
-            free(tmp);
-            if (lexer->state == param_here)
-                expend = Expendable;
-        }        
-
-        // Create token on space
-        if (lexer->state == space && token)
-        {
-            append_token(lexer, create_token(token, Word, expend));
-            free(token);
-            token = NULL;
-            expend = Not_expendable;
+            // Initialize token if needed
+            if (!token_content)
+                token_content = ft_strdup("");
+            
+            // Process quotes (they don't appear in final token)
+            if (lexer->state == single_quote || lexer->state == double_quote)
+            {
+                lexer->offset++; // Skip quote character
+                continue;
+            }
+            
+            // Add content to current token
+            if (lexer->state == literal || lexer->state == param_here)
+            {
+                if (lexer->state == param_here)
+                    expend = Expendable;
+                
+                char *new_content = add_char_to_string(token_content, *(lexer->offset));
+                free(token_content);
+                token_content = new_content;
+            }
         }
-
         lexer->offset++;
     }
-    if (token)
+    if (token_content && *token_content)
     {
-        append_token(lexer, create_token(token, Word, expend));
-        free(token);
+        if (lexer->in_heredoc_delim)
+            expend = Not_expendable;
+        append_token(lexer, create_token(token_content, Word, expend));
+        free(token_content);
     }
+    
+    // Add EOF token
+    append_token(lexer, create_token("", End_of_file, Not_expendable));
 }
+

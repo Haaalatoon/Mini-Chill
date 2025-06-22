@@ -7,26 +7,30 @@ t_lexer *set_state(t_lexer *lexer)
 	current_char = *(lexer->offset);
 	if (current_char == '\0')
 		lexer->state = E_OF;
-	else if (lexer->state == heredoc)
+	if (lexer->context == Separator)
 	{
-		if (lexer->context == Separator)
-		{
-			if (is_whitespace(current_char))
-				lexer->state = space;
-			else if (current_char == '|')
-				lexer->state = pi_pe;
-			else if (current_char == '<')
-				handle_redirect_in(lexer);
-			else if (current_char == '>')
-				handle_redirect_out(lexer);
-		}
+		if (!lexer->in_heredoc_delim)
+            lexer->in_heredoc_delim = 0;
+		if (is_whitespace(current_char))
+			lexer->state = space;
+		else if (current_char == '|')
+			lexer->state = pi_pe;
+		else if (current_char == '<')
+			handle_redirect_in(lexer);
+		else if (current_char == '>')
+			handle_redirect_out(lexer);
 	}
 	else if (current_char == '\'' && lexer->context != Double_quoted)
 		lexer->state = single_quote;
 	else if (current_char == '"' && lexer->context != Quoted)
 		lexer->state = double_quote;
 	else if (current_char == '$' && lexer->context != Quoted && is_valid_param_start(lexer->offset + 1))
-		lexer->state = param_here;
+	{
+		if (lexer->in_heredoc_delim)
+        	lexer->state = literal;
+    	else
+        	lexer->state = param_here;
+	}
 	else if (lexer->context != Quoted && lexer->context != Double_quoted)
 	{
 		if (is_whitespace(current_char))
@@ -65,7 +69,11 @@ void set_context(t_lexer *lexer, char c)
 			lexer->context = Unquoted;
 	}
 	else if (lexer->context == Unquoted && is_seperator(c))
+	{
 		lexer->context = Separator;
+		if (lexer->in_heredoc_delim)
+            lexer->in_heredoc_delim = 0;
+	}
 }
 
 const char *state_to_str(t_state state)

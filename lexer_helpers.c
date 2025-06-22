@@ -53,25 +53,38 @@ int contains_parameter(char *value)
 
 // Handling Redirect Operators
 
-static int count_spaces_ahead(char *offset)
-{
-    int count = 0;
-    while (offset && is_whitespace(*offset)) {
-        count++;
-        offset++;
-    }
-    return count;
-}
+// static int count_spaces_ahead(char *offset)
+// {
+//     int count = 0;
+//     while (offset && is_whitespace(*offset)) {
+//         count++;
+//         offset++;
+//     }
+//     return count;
+// }
 
+// void handle_redirect_in(t_lexer *lexer)
+// {
+// 	if (*(lexer->offset + 1) == '<')
+// 	{
+// 		lexer->state = heredoc;
+//         lexer->offset += 1 + count_spaces_ahead(lexer->offset + 2);
+// 	}
+// 	else
+// 		lexer->state = redirect_in;
+// }
 void handle_redirect_in(t_lexer *lexer)
 {
-	if (*(lexer->offset + 1) == '<')
-	{
-		lexer->state = heredoc;
-        lexer->offset += 1 + count_spaces_ahead(lexer->offset + 2);
-	}
-	else
-		lexer->state = redirect_in;
+    if (*(lexer->offset + 1) == '<')
+    {
+        lexer->state = heredoc;
+        lexer->in_heredoc_delim = 1; // <--- SET THE FLAG HERE
+        lexer->offset++;
+        while (is_whitespace(*(lexer->offset)))
+            lexer->offset++;
+    }
+    else
+        lexer->state = redirect_in;
 }
 
 void handle_redirect_out(t_lexer *lexer)
@@ -88,6 +101,6 @@ void handle_redirect_out(t_lexer *lexer)
 // Resolving
 void skip_space_sep(t_lexer *lexer)
 {
-    if (lexer->state == space && lexer->context == Separator)
+    if (lexer->state == space)
         lexer->offset++;
 }

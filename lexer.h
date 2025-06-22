@@ -9,6 +9,7 @@ typedef enum e_token_type
 {
     Word,
     Pipe,
+    Delim,
     Redirect_In,
     Redirect_Out,
     Append,
@@ -72,6 +73,7 @@ typedef struct s_lexer
     t_list *tokens; // This should be the head of a linked list of tokens
     t_state state;
     t_context context;
+    int in_heredoc_delim;
 } t_lexer;
 
 // Lexer helpers
