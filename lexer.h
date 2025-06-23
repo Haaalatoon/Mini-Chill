@@ -4,6 +4,8 @@
 #include "libft/libft.h"
 #include <stdio.h>
 
+#define MSK_ARR_SZ 100
+
 // Token types
 typedef enum e_token_type
 {
@@ -64,7 +66,8 @@ typedef struct s_token
     char *value;
     t_token_type type;
     t_expendable expendable;
-    unsigned long expansion_mask;
+    // unsigned long expansion_mask;
+    unsigned long expansion_mask[MSK_ARR_SZ];
 } t_token;
 
 typedef struct s_lexer
@@ -95,7 +98,7 @@ void free_lexer(t_lexer *lexer);
 
 // Token management
 t_token *create_token(char *value, t_token_type type, t_expendable expendable);
-void free_token(t_token *token);
+void free_token(void *ptr);
 void append_token(t_lexer *lexer, t_token *token);
 
 // Lexer state management
@@ -112,5 +115,11 @@ const char *context_to_str(t_context context);
 t_token_type get_token_type(t_state state);
 t_quote_type get_quote_type(t_context context);
 t_expendable get_expandable(t_state state);
+
+// Bitmask operations
+void set_mask_bit(unsigned long mask[], size_t pos);
+void clear_mask(unsigned long mask[]);
+void copy_mask(unsigned long dest[], unsigned long src[]);
+int is_mask_bit_set(unsigned long mask[], size_t pos);
 
 #endif

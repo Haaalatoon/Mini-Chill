@@ -212,26 +212,56 @@ void print_binary(unsigned long mask, int bits)
 }
 
 // Helper function to print token with expansion info
+// void print_token_with_mask(t_token *token)
+// {
+//     printf("Token: \"%s\" | Type: %d | Expandable: %s | Mask: ",
+//            token->value,
+//            token->type,
+//            token->expendable == Expendable ? "YES" : "NO");
+    
+//     if (token->expansion_mask == 0) {
+//         printf("0 (no expansion)");
+//     } else {
+//         print_binary(token->expansion_mask, 8);
+//         printf(" (%lu)", token->expansion_mask);
+//     }
+//     printf("\n");
+    
+//     // Show which characters would be expanded
+//     if (token->expansion_mask > 0 && token->value) {
+//         printf("  Expansion map: ");
+//         for (int i = 0; token->value[i]; i++) {
+//             if (token->expansion_mask & (1UL << i)) {
+//                 printf("[%c]", token->value[i]);  // Expandable
+//             } else {
+//                 printf(" %c ", token->value[i]);   // Literal
+//             }
+//         }
+//         printf("\n");
+//     }
+// }
 void print_token_with_mask(t_token *token)
 {
-    printf("Token: \"%s\" | Type: %d | Expandable: %s | Mask: ",
+    printf("Token: \"%s\" | Type: %d | Expandable: %s\n",
            token->value,
            token->type,
            token->expendable == Expendable ? "YES" : "NO");
     
-    if (token->expansion_mask == 0) {
-        printf("0 (no expansion)");
-    } else {
-        print_binary(token->expansion_mask, 8);
-        printf(" (%lu)", token->expansion_mask);
+    // Check if any bits are set in the mask
+    int has_expansion = 0;
+    for (int i = 0; i < MSK_ARR_SZ; i++) {
+        if (token->expansion_mask[i] != 0) {
+            has_expansion = 1;
+            break;
+        }
     }
-    printf("\n");
     
-    // Show which characters would be expanded
-    if (token->expansion_mask > 0 && token->value) {
+    if (!has_expansion) {
+        printf("  Mask: 0 (no expansion)\n");
+    } else {
         printf("  Expansion map: ");
         for (int i = 0; token->value[i]; i++) {
-            if (token->expansion_mask & (1UL << i)) {
+            if (is_mask_bit_set(token->expansion_mask, i)) {
                 printf("[%c]", token->value[i]);  // Expandable
             } else {
                 printf(" %c ", token->value[i]);   // Literal

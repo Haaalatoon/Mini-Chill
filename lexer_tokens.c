@@ -20,21 +20,11 @@ t_token *create_token(char *value, t_token_type type, t_expendable expendable)
         token->value = NULL;
     token->type = type;
     token->expendable = expendable;
-    token->expansion_mask = 0; // Initialize expansion mask to 0
-    return token;
+    // token->expansion_mask = 0; // Initialize expansion mask to 0
+    clear_mask(token->expansion_mask); // Initialize expansion mask to 0
+    return (token);
 }
 
-void free_token(t_token *token)
-{
-    if (!token)
-        return;
-    if (token)
-    {
-        if (token->value)
-            free(token->value);
-        free(token);
-    }
-}
 
 void append_token(t_lexer *lexer, t_token *token)
 {
