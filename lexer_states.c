@@ -7,10 +7,12 @@ t_lexer *set_state(t_lexer *lexer)
 	current_char = *(lexer->offset);
 	if (current_char == '\0')
 		lexer->state = E_OF;
+	if (lexer->context == Separator && !is_whitespace(current_char))
+        lexer->in_heredoc_delim = 0;
 	if (lexer->context == Separator)
 	{
-		if (!lexer->in_heredoc_delim)
-            lexer->in_heredoc_delim = 0;
+		// if (!lexer->in_heredoc_delim)
+        //     lexer->in_heredoc_delim = 0;
 		if (is_whitespace(current_char))
 			lexer->state = space;
 		else if (current_char == '|')

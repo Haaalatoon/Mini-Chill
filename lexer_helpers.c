@@ -56,10 +56,10 @@ void handle_redirect_in(t_lexer *lexer)
     if (*(lexer->offset + 1) == '<')
     {
         lexer->state = heredoc;
-        lexer->in_heredoc_delim = 1;
-        lexer->offset++;
-        while (is_whitespace(*(lexer->offset)))
-            lexer->offset++;
+        // lexer->in_heredoc_delim = 1;
+        // lexer->offset++;
+        // while (is_whitespace(*(lexer->offset)))
+        //     lexer->offset++;
     }
     else
         lexer->state = redirect_in;
@@ -70,7 +70,7 @@ void handle_redirect_out(t_lexer *lexer)
 	if (*(lexer->offset + 1) == '>')
 	{
 		lexer->state = append;
-		lexer->offset++;
+		// lexer->offset++;
 	}
 	else
 		lexer->state = redirect_out;

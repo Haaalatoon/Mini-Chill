@@ -21,7 +21,7 @@ t_token *create_token(char *value, t_token_type type, t_expendable expendable)
     token->type = type;
     token->expendable = expendable;
     // token->expansion_mask = 0; // Initialize expansion mask to 0
-    clear_mask(token->expansion_mask); // Initialize expansion mask to 0
+    // clear_mask(token->expansion_mask); // Initialize expansion mask to 0
     return (token);
 }
 
