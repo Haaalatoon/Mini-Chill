@@ -11,8 +11,6 @@ t_lexer *set_state(t_lexer *lexer)
         lexer->in_heredoc_delim = 0;
 	if (lexer->context == Separator)
 	{
-		// if (!lexer->in_heredoc_delim)
-        //     lexer->in_heredoc_delim = 0;
 		if (is_whitespace(current_char))
 			lexer->state = space;
 		else if (current_char == '|')

@@ -20,7 +20,6 @@ int is_seperator(char c)
     return (is_whitespace(c) || is_redirect(c) || c == '|' || c == '\0');
 }
 
-// Parameter Expansion Detection
 int is_valid_param_start(char *str)
 {
     if (!str || !*str)
@@ -54,13 +53,7 @@ int contains_parameter(char *value)
 void handle_redirect_in(t_lexer *lexer)
 {
     if (*(lexer->offset + 1) == '<')
-    {
         lexer->state = heredoc;
-        // lexer->in_heredoc_delim = 1;
-        // lexer->offset++;
-        // while (is_whitespace(*(lexer->offset)))
-        //     lexer->offset++;
-    }
     else
         lexer->state = redirect_in;
 }
@@ -68,15 +61,11 @@ void handle_redirect_in(t_lexer *lexer)
 void handle_redirect_out(t_lexer *lexer)
 {
 	if (*(lexer->offset + 1) == '>')
-	{
 		lexer->state = append;
-		// lexer->offset++;
-	}
 	else
 		lexer->state = redirect_out;
 }
 
-// Resolving
 void skip_space_sep(t_lexer *lexer)
 {
     if (lexer->state == space)
