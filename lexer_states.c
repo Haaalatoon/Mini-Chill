@@ -1,14 +1,14 @@
 #include "lexer.h"
 
-t_lexer *set_state(t_lexer *lexer)
+t_lexer	*set_state(t_lexer *lexer)
 {
-	char current_char;
+	char	current_char;
 
 	current_char = *(lexer->offset);
 	if (current_char == '\0')
 		lexer->state = E_OF;
 	if (lexer->context == Separator && !is_whitespace(current_char))
-        lexer->in_heredoc_delim = 0;
+		lexer->in_heredoc_delim = 0;
 	if (lexer->context == Separator)
 	{
 		if (is_whitespace(current_char))
@@ -24,12 +24,13 @@ t_lexer *set_state(t_lexer *lexer)
 		lexer->state = single_quote;
 	else if (current_char == '"' && lexer->context != Quoted)
 		lexer->state = double_quote;
-	else if (current_char == '$' && lexer->context != Quoted && is_valid_param_start(lexer->offset + 1))
+	else if (current_char == '$' && lexer->context != Quoted
+		&& is_valid_param_start(lexer->offset + 1))
 	{
 		if (lexer->in_heredoc_delim)
-        	lexer->state = literal;
-    	else
-        	lexer->state = param_here;
+			lexer->state = literal;
+		else
+			lexer->state = param_here;
 	}
 	else if (lexer->context != Quoted && lexer->context != Double_quoted)
 	{
@@ -44,12 +45,12 @@ t_lexer *set_state(t_lexer *lexer)
 		else
 			lexer->state = literal;
 	}
-	else 
+	else
 		lexer->state = literal;
 	return (lexer);
-}		
+}
 
-void set_context(t_lexer *lexer, char c)
+void	set_context(t_lexer *lexer, char c)
 {
 	if (c == '\'' && lexer->context == Unquoted)
 		lexer->context = Quoted;
@@ -72,39 +73,54 @@ void set_context(t_lexer *lexer, char c)
 	{
 		lexer->context = Separator;
 		if (lexer->in_heredoc_delim)
-            lexer->in_heredoc_delim = 0;
+			lexer->in_heredoc_delim = 0;
 	}
 }
 
-const char *state_to_str(t_state state)
-{
+// const char	*state_to_str(t_state state)
+// {
+// 	switch (state)
+// 	{
+// 	case space:
+// 		return ("space");
+// 	case literal:
+// 		return ("literal");
+// 	case pi_pe:
+// 		return ("In_pipe");
+// 	case redirect_in:
+// 		return ("redirect_in");
+// 	case redirect_out:
+// 		return ("In_redirect_out");
+// 	case append:
+// 		return ("append");
+// 	case param_here:
+// 		return ("param_here");
+// 	case single_quote:
+// 		return ("single_quote");
+// 	case double_quote:
+// 		return ("double_quote");
+// 	case heredoc:
+// 		return ("heredoc");
+// 	case E_OF:
+// 		return ("E_OF");
+// 	default:
+// 		return ("Unknown");
+// 	}
+// }
 
-	switch (state)
-	{
-		case space: return "space";
-		case literal: return "literal";
-		case pi_pe: return "In_pipe";
-		case redirect_in: return "redirect_in";
-		case redirect_out: return "In_redirect_out";
-		case append: return "append";
-		case param_here: return "param_here";
-		case single_quote: return "single_quote";
-		case double_quote: return "double_quote";
-		case heredoc: return "heredoc";
-		case E_OF: return "E_OF";
-		default: return "Unknown";
-	}
-}
-
-const char *context_to_str(t_context context)
-{
-	switch (context)
-	{
-		case Unquoted: return "Unquoted";
-		case Quoted: return "Quoted";
-		case Double_quoted: return "Double_quoted";
-		case Separator: return "Separator";
-		default: return "Unknown";
-	}
-}
-
+// const char	*context_to_str(t_context context)
+// {
+// 	switch (context)
+// 	{
+// 	case Unquoted:
+// 		return ("Unquoted");
+// 	case Quoted:
+// 		return ("Quoted");
+// 	case Double_quoted:
+// 		return ("Double_quoted");
+// 	case Separator:
+// 		return ("Separator");
+// 	default:
+// 		return "Unknown";
+// 	}
+// }
