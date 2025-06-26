@@ -68,49 +68,52 @@ void	create_operator_token(t_lexer *lexer)
 	}
 }
 
-static void finalize_current_token(t_lexer *lexer, char **start, t_expendable *expend)
+static void	finalize_current_token(t_lexer *lexer, char **start,
+		t_expendable *expend)
 {
-    char *chunk;
-    
-    if (!*start)
-        return;
-    chunk = ft_substr(*start, 0, lexer->offset - *start);
-    if (!chunk)
-        return; 
-    append_token(lexer, create_token(chunk, Word, *expend));
-    free(chunk);
-    *start = NULL;
-    *expend = Not_expendable;
+	char	*chunk;
+
+	if (!*start)
+		return ;
+	chunk = ft_substr(*start, 0, lexer->offset - *start);
+	if (!chunk)
+		return ;
+	append_token(lexer, create_token(chunk, Word, *expend));
+	free(chunk);
+	*start = NULL;
+	*expend = Not_expendable;
 }
 
-void resolve_tokens(t_lexer *lexer)
+void	resolve_tokens(t_lexer *lexer)
 {
-    t_expendable expend = Not_expendable;
-    char *start = NULL;
+	t_expendable	expend;
+	char			*start;
 
-    while (*(lexer->offset))
-    {
-        set_context(lexer, *(lexer->offset));
-        set_state(lexer);
+	expend = Not_expendable;
+	start = NULL;
+	while (*(lexer->offset))
+	{
+		set_context(lexer, *(lexer->offset));
+		set_state(lexer);
 		if (lexer->state == space && !start)
-        {
-            lexer->offset++;
-            continue;
-        }
+		{
+			lexer->offset++;
+			continue ;
+		}
 		if (lexer->state == param_here)
-            expend = Expendable;
-        if (is_operator_state(lexer->state))
-        {
-            finalize_current_token(lexer, &start, &expend);
-            create_operator_token(lexer);
-            continue;
-        }
+			expend = Expendable;
+		if (is_operator_state(lexer->state))
+		{
+			finalize_current_token(lexer, &start, &expend);
+			create_operator_token(lexer);
+			continue ;
+		}
 		if (!start)
-            start = lexer->offset;
-        if (lexer->context == Separator && lexer->state == space)
-            finalize_current_token(lexer, &start, &expend);
-        lexer->offset++;
-    }
-    finalize_current_token(lexer, &start, &expend);
-    append_token(lexer, create_token("", End_of_file, Not_expendable));
+			start = lexer->offset;
+		if (lexer->context == Separator && lexer->state == space)
+			finalize_current_token(lexer, &start, &expend);
+		lexer->offset++;
+	}
+	finalize_current_token(lexer, &start, &expend);
+	append_token(lexer, create_token("", End_of_file, Not_expendable));
 }

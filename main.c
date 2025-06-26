@@ -4,10 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Function declarations (put these at the top)
-void print_binary(unsigned long mask, int bits);
-void print_token_with_mask(t_token *token);
-void test_input(const char *input);
 
 const char *token_type_to_str(t_token_type type)
 {
@@ -53,48 +49,7 @@ void print_binary(unsigned long mask, int bits)
     }
 }
 
-void print_token_with_mask(t_token *token)
-{
-    printf("Token: \"%s\" | Type: %d | Expandable: %s\n",
-           token->value,
-           token->type,
-           token->expendable == Expendable ? "YES" : "NO");
-    
-    // Check if any bits are set in the mask
-    int has_expansion = 0;
-    for (int i = 0; i < MSK_ARR_SZ; i++) {
-        if (token->expansion_mask[i] != 0) {
-            has_expansion = 1;
-            break;
-        }
-    }
 
-// Test function to process input and show results
-void test_input(const char *input)
-{
-    printf("\n=== Testing: \"%s\" ===\n", input);
-    
-    t_lexer *lexer = init_lexer(input);
-    if (!lexer) {
-        printf("Failed to initialize lexer\n");
-        return;
-    }
-    
-    resolve_tokens(lexer);
-    
-    // Print all tokens
-    t_list *current = lexer->tokens;
-    int token_num = 1;
-    
-    while (current) {
-        t_token *token = (t_token *)current->content;
-        printf("Token %d: ", token_num++);
-        print_token_with_mask(token);
-        current = current->next;
-    }
-    
-    free_lexer(lexer);
-}
 
 void print_expandable_tokens(t_lexer *lexer)
 {
