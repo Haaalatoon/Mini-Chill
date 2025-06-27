@@ -77,50 +77,52 @@ void	set_context(t_lexer *lexer, char c)
 	}
 }
 
-const char	*state_to_str(t_state state)
-{
-	switch (state)
-	{
-	case space:
-		return ("space");
-	case literal:
-		return ("literal");
-	case pi_pe:
-		return ("In_pipe");
-	case redirect_in:
-		return ("redirect_in");
-	case redirect_out:
-		return ("In_redirect_out");
-	case append:
-		return ("append");
-	case param_here:
-		return ("param_here");
-	case single_quote:
-		return ("single_quote");
-	case double_quote:
-		return ("double_quote");
-	case heredoc:
-		return ("heredoc");
-	case E_OF:
-		return ("E_OF");
-	default:
-		return ("Unknown");
-	}
-}
 
-const char	*context_to_str(t_context context)
-{
-	switch (context)
-	{
-	case Unquoted:
-		return ("Unquoted");
-	case Quoted:
-		return ("Quoted");
-	case Double_quoted:
-		return ("Double_quoted");
-	case Separator:
-		return ("Separator");
-	default:
-		return "Unknown";
-	}
-}
+// For Debugging purposes, you can uncomment these functions to print the current state and context as strings.
+// const char	*state_to_str(t_state state)
+// {
+// 	switch (state)
+// 	{
+// 	case space:
+// 		return ("space");
+// 	case literal:
+// 		return ("literal");
+// 	case pi_pe:
+// 		return ("In_pipe");
+// 	case redirect_in:
+// 		return ("redirect_in");
+// 	case redirect_out:
+// 		return ("In_redirect_out");
+// 	case append:
+// 		return ("append");
+// 	case param_here:
+// 		return ("param_here");
+// 	case single_quote:
+// 		return ("single_quote");
+// 	case double_quote:
+// 		return ("double_quote");
+// 	case heredoc:
+// 		return ("heredoc");
+// 	case E_OF:
+// 		return ("E_OF");
+// 	default:
+// 		return ("Unknown");
+// 	}
+// }
+
+// const char	*context_to_str(t_context context)
+// {
+// 	switch (context)
+// 	{
+// 	case Unquoted:
+// 		return ("Unquoted");
+// 	case Quoted:
+// 		return ("Quoted");
+// 	case Double_quoted:
+// 		return ("Double_quoted");
+// 	case Separator:	
+// 		return ("Separator");
+// 	default:
+// 		return ("Unknown");
+// 	}
+// }

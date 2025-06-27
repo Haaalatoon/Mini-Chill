@@ -4,7 +4,21 @@
 # include "libft/libft.h"
 # include <stdio.h>
 
-# define MSK_ARR_SZ 100
+// # define MSK_ARR_SZ 100
+
+# include <stdbool.h>
+
+// To change later
+typedef struct s_minishell
+{
+	char	**environ;
+	char	*line;
+	int		exit_s;
+	bool	signint_child;
+	bool	heredoc_sigint;
+}	t_minishell;
+
+extern t_minishell g_minishell;
 
 // Token types
 typedef enum e_token_type
@@ -64,7 +78,7 @@ typedef struct s_token
 	char			*value;
 	t_token_type	type;
 	t_expendable	expendable;
-	unsigned long	expansion_mask[MSK_ARR_SZ];
+	// unsigned long	expansion_mask[MSK_ARR_SZ];
 }					t_token;
 
 typedef struct s_lexer
@@ -112,5 +126,10 @@ const char			*state_to_str(t_state state);
 const char			*context_to_str(t_context context);
 t_token_type		get_token_type(t_state state);
 t_quote_type		get_quote_type(t_context context);
+
+// Functions from signals.c
+void	ft_init_signals(void);
+void	ft_sigint_handler(int sig);
+void	ft_reset_signals_in_child(void);
 
 #endif

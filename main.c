@@ -41,13 +41,6 @@ const char *expendable_to_str(t_expendable ex)
     }
 }
 
-void print_binary(unsigned long mask, int bits)
-{
-    printf("0b");
-    for (int i = bits - 1; i >= 0; i--) {
-        printf("%d", (int)((mask >> i) & 1));  // Cast to int to fix format warning
-    }
-}
 
 
 
