@@ -180,7 +180,7 @@ int	token_sequence_error(t_list *lst)
 		if (curr->type == Here_doc && ++heredoc_count > MAX_HEREDOCS)
 		{
 			printf("minishell: maximum here-document count exceeded\n");
-			// throw_err(INV_TOKEN, "<<");
+			// throw_err(INV_TOKEN, curr->value);
 			return (1);
 		}
 
