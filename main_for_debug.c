@@ -115,7 +115,18 @@ int main(void)
         // Reset offset and resolve tokens
         lexer->offset = lexer->input;
         resolve_tokens(lexer);
+
+        // This:
         token_sequence_error(lexer->tokens);
+
+        // Should BE:
+        // if (token_sequence_error(lexer->tokens))
+        // {
+        //     free_lexer(lexer);
+        //     free(input);
+        //     continue;
+        // }
+
 
 
         // Print resolved tokens
