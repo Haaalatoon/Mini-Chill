@@ -5,6 +5,7 @@
 # include <stdio.h>
 
 // # define MSK_ARR_SZ 100
+#define MAX_HEREDOCS 16
 
 # include <stdbool.h>
 
@@ -101,7 +102,7 @@ int					is_valid_param_char(char c);
 int					contains_parameter(char *value);
 void				handle_redirect_in(t_lexer *lexer);
 void				handle_redirect_out(t_lexer *lexer);
-void				skip_spaces(t_lexer *lexer);
+// void				skip_spaces(t_lexer *lexer);
 
 // Lexer initialization and cleanup
 t_lexer				*init_lexer(const char *input);
@@ -131,5 +132,10 @@ t_quote_type		get_quote_type(t_context context);
 void	ft_init_signals(void);
 void	ft_sigint_handler(int sig);
 void	ft_reset_signals_in_child(void);
+
+// Syntax checking
+int	unclosed_quote_error(t_context ctx);
+int token_sequence_error(t_list *tokens);
+
 
 #endif

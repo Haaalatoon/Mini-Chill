@@ -117,3 +117,76 @@ void	resolve_tokens(t_lexer *lexer)
 	finalize_current_token(lexer, &start, &expend);
 	append_token(lexer, create_token("", End_of_file, Not_expendable));
 }
+
+// Syntax checking functions
+static int	is_redirection(t_token_type type)
+{
+	return (type == Redirect_In || type == Redirect_Out
+		|| type == Append || type == Here_doc);
+}
+
+static int	is_operator(t_token_type type)
+{
+	return (type == Pipe || is_redirection(type));
+}
+
+
+int	unclosed_quote_error(t_context ctx)
+{
+	if (ctx == Quoted)
+		printf("\nminishell: syntax error: unexpected newline while looking for matching '\''\n");
+	else if (ctx == Double_quoted)
+		printf("\nminishell: syntax error: unexpected newline while looking for matching '\"'\n");
+	return (ctx == Quoted || ctx == Double_quoted);
+}
+
+int	token_sequence_error(t_list *lst)
+{
+	t_token	*curr;
+	t_token	*next;
+	t_token	*prev;
+	int		heredoc_count;
+
+	heredoc_count = 0;
+	while (lst)
+	{
+		curr = lst->content ? lst->content : NULL;
+		next = lst->next ? lst->next->content : NULL;
+		prev = lst->prev ? lst->prev->content : NULL;
+		
+		// Pipe at the end or Pipes in a row
+		if (curr->type == Pipe && next && (next->type == Pipe || next->type == End_of_file))
+		{
+			printf("minishell: syntax error: unexpected '|'\n");
+			// throw_err(INV_TOKEN, curr->value);
+			return (1);
+		}
+		// Pipe at the beginning
+		if (!prev && curr->type == Pipe)
+		{
+			printf("minishell: syntax error: unexpected '|'\n");
+			// throw_err(INV_TOKEN, curr->value);
+			return (1);
+		}
+		// Redirection without content
+		if (is_redirection(curr->type)
+			&& (!next || is_operator(next->type) || next->type == End_of_file))
+		{
+			printf("minishell: syntax error: unspecified redirect '%s'\n", curr->value);
+			//throw_err(INV_TOKEN, curr->value);
+			return (1);
+		}
+		// here-doc
+		if (curr->type == Here_doc && ++heredoc_count > MAX_HEREDOCS)
+		{
+			printf("minishell: maximum here-document count exceeded\n");
+			// throw_err(INV_TOKEN, "<<");
+			return (1);
+		}
+
+		// Must add here-doc WARNING !!!!
+
+		lst = lst->next;
+	}
+	return (0);
+}

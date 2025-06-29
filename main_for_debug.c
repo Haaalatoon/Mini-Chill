@@ -92,15 +92,31 @@ int main(void)
             lexer->offset++;
         }
 
+
         // Print final EOF
         set_context(lexer, '\0');
         set_state(lexer);
-        printf("Char: '\\0'        | State: %-20s | Context: %-10s\n",
+
+
+        // Detect unclosed quotes HERE !!
+        if (unclosed_quote_error(lexer->context))
+        {
+            // if (lexer->context == Quoted)
+            //     throw_err(INV_TOKEN, '\'');
+            // else if (lexer->context == Double_quoted)
+            //     throw_err(INV_TOKEN, '"');
+            free_lexer(lexer);
+            free(input);
+            continue;
+        }
+        printf("Char: '\\0'        | State: %-20s | Context: %-10s\n\n",
             state_to_str(lexer->state), context_to_str(lexer->context));
 
         // Reset offset and resolve tokens
         lexer->offset = lexer->input;
         resolve_tokens(lexer);
+        token_sequence_error(lexer->tokens);
+
 
         // Print resolved tokens
         printf("\nResolved Tokens:\n");
