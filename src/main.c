@@ -27,28 +27,30 @@ t_cmd	*parse(char *input)
 	if (!lexer)
 	{
 		fprintf(stderr, "Lexer init failed\n");
-		free(input);
+		// free(input);
 		return (NULL);
 	}
 	resolve_tokens(lexer);
 	if (check_syntax_errors(lexer))
 	{
 		free_lexer(lexer);
-		free(input);
+		// free(input);
 		return (NULL);
 	}
 	data()->pipeline = create_pipeline(lexer->tokens);
 	free_lexer(lexer);
-	free(input);
+	// free(input);
 	return (data()->pipeline);
 }
 
 int	routine(void)
 {
 	char	*input;
+	t_cmd	*pipeline;
 
 	while (1)
 	{
+		g_signal_received = 0;
 		input = readline("minishell> ");
 		if (!input)
 		{
@@ -61,9 +63,19 @@ int	routine(void)
 			continue ;
 		}
 		add_history(input);
-		parse(input);
-		start(data()->pipeline);
-		cleanup(1);
+		pipeline = parse(input);
+        if (!pipeline || pipeline->argcount == 0)
+        {
+            cleanup(1);
+            data()->pipeline = NULL;
+			data()->sig = 0; // Reset flag
+            free(input);
+            continue;
+        }
+        start(pipeline);
+        cleanup(1);
+        data()->pipeline = NULL;
+        free(input);
 	}
 	return (0);
 }

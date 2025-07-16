@@ -45,6 +45,7 @@ int	do_pipeline(t_cmd *pipeline)
 	int	status;
 	int last;
 
+	setup_parent_signals();
 	while (pipeline->next)
 	{
 		cmd_pipe(pipeline);
@@ -52,6 +53,7 @@ int	do_pipeline(t_cmd *pipeline)
 	}
 	last = cmd(pipeline);
 	status = wait_child_processes(last);
+	setup_interactive_signals();
 	return (status);
 }
 
@@ -76,11 +78,13 @@ int	start(t_cmd *pipeline)
 
 void parent(int pid, int *status)
 {
-	signal(SIGINT, SIG_IGN);
-	signal(SIGQUIT, SIG_IGN);
+	// signal(SIGINT, SIG_IGN);
+	// signal(SIGQUIT, SIG_IGN);
+	setup_parent_signals();
 	waitpid(pid, status, 0);
-	signal(SIGINT, foo);
-	signal(SIGQUIT, SIG_IGN);
+	// signal(SIGINT, foo);
+	// signal(SIGQUIT, SIG_IGN);
+	setup_interactive_signals();
 	if (WIFEXITED(*status))
 		data()->status = WEXITSTATUS(*status);
 	else if (WIFSIGNALED(*status))
@@ -108,8 +112,9 @@ int	cmd(t_cmd *cmd)
 		throw_err(SYSCALL_FAIL, "fork");
 	if (!pid)
 	{
-		signal(SIGINT, SIG_DFL);
-		signal(SIGQUIT, SIG_DFL);
+		// signal(SIGINT, SIG_DFL);
+		// signal(SIGQUIT, SIG_DFL);
+		setup_child_signals();
 		if (cmd->redircount)
 			redir(cmd->redir, cmd->redircount);
 		if (cmd->argcount)

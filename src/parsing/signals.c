@@ -13,6 +13,8 @@
 #include <lexer.h>
 #include <main.h>
 
+volatile sig_atomic_t g_signal_received = 0;
+
 void	sigint_handler(int sig)
 {
     (void)sig;
@@ -26,10 +28,10 @@ void	sigint_handler(int sig)
 void heredoc_sigint_handler(int sig)
 {
     (void)sig;
+    g_signal_received = 1;
     data()->sig = 1;
     data()->status = 130;
     write(1, "\n", 1);
-    exit(130);
 }
 
 void setup_interactive_signals(void)

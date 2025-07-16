@@ -109,10 +109,22 @@ char	*do_heredoc(char *eof, int expand)
 	pid = fork();
 	if (!pid)
 	{
-		setup_heredoc_signals();
+		setup_child_signals();
+		g_signal_received = 0;
 		while (1)
 		{
 			line = readline("> ");
+			if (g_signal_received)
+			{
+				if (line)
+					free(line);
+				close(fd);
+				unlink(file);
+				free(file);
+				data()->status = 130;
+				setup_interactive_signals();
+				exit(130);
+			}
 			if (!line || !_strncmp(line, eof, _strlen(eof)))
 				break ;
 			if (expand)
@@ -127,16 +139,22 @@ char	*do_heredoc(char *eof, int expand)
 	}
 	else
 	{
-		setup_interactive_signals();
+		setup_parent_signals();
 		waitpid(pid, &status, 0);
-		if (WIFSIGNALED(status) && status == SIGINT)
+		if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT)
 		{
 			fprintf(stderr, "test\n");
 			close(fd);
 			unlink(file);
 			free(file);
+			data()->status = 130;
+			data()->sig = 1; // <-- Set interruption flag
+			// rl_on_new_line();
+			// rl_replace_line("", 0);
+			setup_interactive_signals();
 			return NULL;
 		}
+		setup_interactive_signals();
 	}
 	return (close(fd), file);
 }

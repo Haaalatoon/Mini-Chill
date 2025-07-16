@@ -27,6 +27,8 @@
 # include <termios.h>
 # include <signal.h>
 
+extern volatile sig_atomic_t g_signal_received;
+
 typedef enum e_err
 {
 	ERR_NONE,
@@ -132,7 +134,8 @@ void	free_env(t_env *env);
 void	open_fail(char *data);
 void	file_enoent(char *data);
 void	cleanup(int n);
-void	foo(int sig);
+// void	foo(int sig);
+void	reset_readline_state(void);
 t_shell	*data(void);
 
 #endif

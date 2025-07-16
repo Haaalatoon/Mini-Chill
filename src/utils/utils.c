@@ -19,15 +19,22 @@ char	*max_str(char *a, char *b)
 	return (b);
 }
 
-void	foo(int sig)
-{
-	(void)sig;
-	data()->status = 130;
-	write(1, "\n", 1);
-	rl_on_new_line();
-	rl_replace_line("", 0);
-	rl_redisplay();
-}
+// void	foo(int sig)
+// {
+// 	(void)sig;
+// 	data()->status = 130;
+// 	write(1, "\n", 1);
+// 	rl_on_new_line();
+// 	rl_replace_line("", 0);
+// 	rl_redisplay();
+// }
+// void reset_readline_state(void)
+// {
+// 	rl_clear_history();
+// 	rl_on_new_line();
+// 	rl_replace_line("", 0);
+// 	rl_redisplay();
+// }
 
 t_shell *data(void)
 {
@@ -51,9 +58,11 @@ void	init_shell(char **envp)
 	shell->status = 0;
 	shell->chached_pwd = NULL;
 	shell->sig = 0;
+	g_signal_received = 0;
 	// tcgetattr(STDIN_FILENO, &data()->orig_termios);
-	signal(SIGINT, foo);
-	signal(SIGQUIT, SIG_IGN);
+	// signal(SIGINT, foo);
+	// signal(SIGQUIT, SIG_IGN);
+	setup_interactive_signals();
 }
 
 void	cleanup(int n)

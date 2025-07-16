@@ -123,6 +123,11 @@ t_cmd	*create_pipeline(t_list *list)
 		_printfd(2, "hdsigint\n");
 		return (NULL);
 	}
+	if (head->argcount == 0)
+    {
+        free_pipeline(head);
+        return NULL;
+    }
 	cmd = head;
 	while (list && ((t_token *)list->data)->type != End_of_file)
 	{
