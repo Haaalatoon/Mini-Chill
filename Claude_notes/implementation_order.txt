@@ -1,0 +1,269 @@
+/* ============================================================================
+ * MINISHELL LEXER IMPLEMENTATION ORDER
+ * Follow this order to build your lexer step by step
+ * ============================================================================ */
+
+/* ============================================================================
+ * PHASE 1: BASIC HELPER FUNCTIONS (Foundation)
+ * ============================================================================ */
+
+// 1. Character Classification Functions
+int is_whitespace(char c);
+int is_quote(char c);
+int is_redirect(char c);
+int is_separator(char c);
+int ft_isalpha(char c);
+int ft_isalnum(char c);
+
+// 2. String Utility Functions
+char *ft_strdup(char *str);
+char *ft_strncpy(char *dest, char *src, int n);
+int ft_strlen(char *str);
+char *ft_strchr(char *str, char c);
+
+// 3. Memory Management Functions
+void *ft_malloc(size_t size);
+void ft_free(void *ptr);
+
+/* ============================================================================
+ * PHASE 2: TOKEN MANAGEMENT (Data Structures)
+ * ============================================================================ */
+
+// 4. Token Creation and Destruction
+t_token *create_token(char *value, int type, int quote, int expendable);
+void free_token(t_token *token);
+
+// 5. Token List Management
+void add_token_to_list(t_lexer *lexer, t_token *token);
+void free_token_list(t_list *tokens);
+
+/* ============================================================================
+ * PHASE 3: LEXER INITIALIZATION (Setup)
+ * ============================================================================ */
+
+// 6. Lexer Initialization and Cleanup
+t_lexer *init_lexer(char *input);
+void free_lexer(t_lexer *lexer);
+
+/* ============================================================================
+ * PHASE 4: PARAMETER VALIDATION (Logic Helpers)
+ * ============================================================================ */
+
+// 7. Parameter Expansion Detection
+int is_valid_param_start(char *str);
+int is_valid_param_char(char c);
+int contains_parameter(char *value);
+
+/* ============================================================================
+ * PHASE 5: TOKEN VALUE PROCESSING (String Processing)
+ * ============================================================================ */
+
+// 8. Token Value Extraction and Processing
+char *extract_token_value(char *start, char *end);
+char *process_token_value(char *raw_value, int quote_type);
+
+/* ============================================================================
+ * PHASE 6: TOKEN ANALYSIS (Decision Making)
+ * ============================================================================ */
+
+// 9. Token Property Determination
+int determine_token_type(char *value, int state);
+int determine_quote_type(int state);
+int determine_expendable(char *value, int quote_type, int state);
+
+/* ============================================================================
+ * PHASE 7: NAVIGATION HELPERS (Movement Functions)
+ * ============================================================================ */
+
+// 10. Position Management
+void skip_whitespace(char **pos);
+char *advance_separator(t_lexer *lexer, char *pos);
+
+/* ============================================================================
+ * PHASE 8: STATE MACHINE CORE (The Heart)
+ * ============================================================================ */
+
+// 11. State Management Functions
+void set_state(t_lexer *lexer, char current_char);
+void set_context(t_lexer *lexer, char current_char);
+
+/* ============================================================================
+ * PHASE 9: TOKEN RESOLUTION (Processing)
+ * ============================================================================ */
+
+// 12. Token Resolution Logic
+int should_resolve_token(t_lexer *lexer, int old_context);
+void resolve_and_generate_token(t_lexer *lexer, char *token_start, char *token_end);
+
+/* ============================================================================
+ * PHASE 10: MAIN LEXER LOOP (Integration)
+ * ============================================================================ */
+
+// 13. Main Tokenization Function
+void tokenize_input(t_lexer *lexer);
+
+/* ============================================================================
+ * PHASE 11: PUBLIC API (Interface)
+ * ============================================================================ */
+
+// 14. Public Interface Functions
+t_list *lexer_tokenize(char *input);  // Main function that ties everything together
+
+/* ============================================================================
+ * DETAILED IMPLEMENTATION STEPS
+ * ============================================================================ */
+
+/*
+ * STEP-BY-STEP IMPLEMENTATION GUIDE:
+ * 
+ * 1. Start with Phase 1 (Helper Functions)
+ *    - These are simple, pure functions with no dependencies
+ *    - Test each one individually with simple inputs
+ *    - Example: is_whitespace(' ') should return 1
+ * 
+ * 2. Implement Phase 2 (Token Management)
+ *    - Basic data structure operations
+ *    - Test: create a token, check its values, free it
+ * 
+ * 3. Build Phase 3 (Lexer Setup)
+ *    - Simple initialization and cleanup
+ *    - Test: create lexer, check initial values, free it
+ * 
+ * 4. Add Phase 4 (Parameter Logic)
+ *    - Pure logic functions for $ handling
+ *    - Test: is_valid_param_start("HOME") should return 1
+ * 
+ * 5. Implement Phase 5 (String Processing)
+ *    - Functions that manipulate strings
+ *    - Test: extract_token_value with simple ranges
+ * 
+ * 6. Build Phase 6 (Decision Functions)
+ *    - Logic to determine token properties
+ *    - Test: determine_token_type with different inputs
+ * 
+ * 7. Add Phase 7 (Navigation)
+ *    - Functions that move through the input
+ *    - Test: skip_whitespace with "   hello"
+ * 
+ * 8. Implement Phase 8 (State Machine)
+ *    - The core logic of your lexer
+ *    - Test: set_state with different characters
+ * 
+ * 9. Build Phase 9 (Token Resolution)
+ *    - Brings everything together to create tokens
+ *    - Test: resolve simple tokens first
+ * 
+ * 10. Implement Phase 10 (Main Loop)
+ *     - The orchestrator that runs the whole process
+ *     - Test: simple inputs like "echo hello"
+ * 
+ * 11. Create Phase 11 (Public API)
+ *     - Clean interface for the rest of your shell
+ *     - Test: full integration with complex inputs
+ */
+
+/* ============================================================================
+ * TESTING STRATEGY FOR EACH PHASE
+ * ============================================================================ */
+
+/*
+ * PHASE 1 TESTS:
+ * - is_whitespace(' ') == 1
+ * - is_quote('\'') == 1
+ * - is_redirect('<') == 1
+ * 
+ * PHASE 2 TESTS:
+ * - Create token with "hello", Word, No_quotes, Not_expendable
+ * - Verify all fields are set correctly
+ * 
+ * PHASE 3 TESTS:
+ * - init_lexer("hello world")
+ * - Check lexer->offset points to start
+ * - Check lexer->context is Unquoted
+ * 
+ * PHASE 4 TESTS:
+ * - is_valid_param_start("HOME") == 1
+ * - is_valid_param_start("123") == 0
+ * - is_valid_param_start("?") == 1
+ * 
+ * PHASE 5 TESTS:
+ * - extract_token_value("hello", "hello" + 5) == "hello"
+ * - process_token_value("\"hello\"", Double_quotes) == "hello"
+ * 
+ * PHASE 6 TESTS:
+ * - determine_token_type("|", In_pipe) == Pipe
+ * - determine_quote_type(In_quote) == Single_quotes
+ * 
+ * PHASE 7 TESTS:
+ * - char *p = "   hello"; skip_whitespace(&p); // p should point to 'h'
+ * 
+ * PHASE 8 TESTS:
+ * - set_state(lexer, '|') should set state to In_pipe
+ * - set_context(lexer, ' ') should set context to Separator (if unquoted)
+ * 
+ * PHASE 9 TESTS:
+ * - resolve_and_generate_token with simple word
+ * - Check token is created and added to list
+ * 
+ * PHASE 10 TESTS:
+ * - tokenize_input with "echo hello"
+ * - Should produce 3 tokens: "echo", "hello", EOF
+ * 
+ * PHASE 11 TESTS:
+ * - lexer_tokenize("echo 'hello world' | cat")
+ * - Verify complete token list is correct
+ */
+
+/* ============================================================================
+ * PROGRESSIVE TESTING INPUTS
+ * ============================================================================ */
+
+/*
+ * Start with these simple inputs and gradually increase complexity:
+ * 
+ * LEVEL 1 - Basic Words:
+ * - "hello"           -> [hello, EOF]
+ * - "hello world"     -> [hello, world, EOF]
+ * 
+ * LEVEL 2 - Simple Quotes:
+ * - "'hello'"         -> [hello, EOF]
+ * - "\"hello\""       -> [hello, EOF]
+ * 
+ * LEVEL 3 - Redirections:
+ * - "cat < file"      -> [cat, <, file, EOF]
+ * - "cat > file"      -> [cat, >, file, EOF]
+ * 
+ * LEVEL 4 - Pipes:
+ * - "cat | grep"      -> [cat, |, grep, EOF]
+ * 
+ * LEVEL 5 - Complex:
+ * - "echo 'hello world' | cat"
+ * - "cat << EOF"
+ * - "echo \"$HOME\""
+ * 
+ * LEVEL 6 - Edge Cases:
+ * - "'hello'world"    -> [helloworld, EOF]
+ * - "echo\"\""        -> [echo, EOF]
+ * - "   echo   "      -> [echo, EOF]
+ */
+
+/* ============================================================================
+ * DEBUGGING TIPS
+ * ============================================================================ */
+
+/*
+ * 1. Add debug prints in each function to trace execution
+ * 2. Print state and context changes in set_state/set_context
+ * 3. Print tokens as they're created in resolve_and_generate_token
+ * 4. Use a simple token printer function for debugging:
+ * 
+ * void print_token(t_token *token)
+ * {
+ *     printf("Token: value='%s', type=%d, quote=%d, expandable=%d\n",
+ *            token->value ? token->value : "NULL",
+ *            token->type, token->quote, token->expendable);
+ * }
+ * 
+ * 5. Test each phase thoroughly before moving to the next
+ * 6. Use valgrind to check for memory leaks early and often
+ */

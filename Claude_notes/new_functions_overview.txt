@@ -1,0 +1,260 @@
+/* ============================================================================
+ * OVERVIEW OF ADDITIONAL FUNCTIONS IN THE LEXER
+ * ============================================================================ */
+
+/* ============================================================================
+ * CATEGORY 1: CHARACTER CLASSIFICATION HELPERS
+ * These make your code more readable and maintainable
+ * ============================================================================ */
+
+int is_whitespace(char c)
+{
+    // PURPOSE: Check if character is whitespace (space, tab, newline)
+    // USED IN: set_state(), set_context(), skip_whitespace()
+    // REPLACES: Writing (c == ' ' || c == '\t' || c == '\n') everywhere
+    
+    return (c == ' ' || c == '\t' || c == '\n');
+}
+
+int is_quote(char c)
+{
+    // PURPOSE: Check if character is any type of quote
+    // USED IN: set_state(), set_context()
+    // REPLACES: Writing (c == '\'' || c == '"') multiple times
+    
+    return (c == '\'' || c == '"');
+}
+
+int is_redirect(char c)
+{
+    // PURPOSE: Check if character starts a redirection
+    // USED IN: set_state(), set_context()
+    // REPLACES: Writing (c == '<' || c == '>') everywhere
+    
+    return (c == '<' || c == '>');
+}
+
+int is_separator(char c)
+{
+    // PURPOSE: Check if character should trigger token separation
+    // USED IN: set_context() to determine when to switch to Separator context
+    // REPLACES: Long conditional checks
+    
+    return (is_whitespace(c) || c == '|' || is_redirect(c) || c == '\0');
+}
+
+/* ============================================================================
+ * CATEGORY 2: PARAMETER EXPANSION HELPERS
+ * These handle the logic for $VARIABLE expansion
+ * ============================================================================ */
+
+int is_valid_param_start(char *str)
+{
+    // PURPOSE: Check if what follows '$' is a valid parameter name
+    // USED IN: set_state() when you encounter '$'
+    // EXAMPLE: "$HOME" -> checks if "HOME" is valid (YES)
+    //          "$123"  -> checks if "123" is valid (NO)
+    //          "$?"    -> checks if "?" is valid (YES - special case)
+    
+    if (!str || !*str)
+        return 0;
+    
+    // Special case: $? (exit status)
+    if (*str == '?')
+        return 1;
+    
+    // Parameter must start with letter or underscore
+    return (ft_isalpha(*str) || *str == '_');
+}
+
+int is_valid_param_char(char c)
+{
+    // PURPOSE: Check if character can be part of parameter name
+    // USED IN: When parsing parameter names after '$'
+    // EXAMPLE: In "$HOME_DIR", all chars after $ are valid param chars
+    
+    return (ft_isalnum(c) || c == '_');
+}
+
+int contains_parameter(char *value)
+{
+    // PURPOSE: Check if a token value contains parameter expansion
+    // USED IN: determine_expendable() to decide if token needs expansion
+    // EXAMPLE: "hello$HOME" -> YES, contains parameter
+    //          "hello"      -> NO, no parameters
+    
+    char *dollar = ft_strchr(value, '$');
+    
+    while (dollar)
+    {
+        if (is_valid_param_start(dollar + 1))
+            return 1;
+        dollar = ft_strchr(dollar + 1, '$');
+    }
+    
+    return 0;
+}
+
+/* ============================================================================
+ * CATEGORY 3: NAVIGATION AND POSITION MANAGEMENT
+ * These help move through the input string efficiently
+ * ============================================================================ */
+
+void skip_whitespace(char **pos)
+{
+    // PURPOSE: Advance pointer past all whitespace characters
+    // USED IN: Main tokenization loop after resolving tokens
+    // WHY NEEDED: You don't want whitespace to start new tokens
+    // EXAMPLE: "echo   hello" -> after "echo", skip spaces to reach "hello"
+    
+    while (**pos && is_whitespace(**pos))
+        (*pos)++;
+}
+
+char *advance_separator(t_lexer *lexer, char *pos)
+{
+    // PURPOSE: Move past separator characters (handles multi-char operators)
+    // USED IN: Main loop when processing separator tokens
+    // WHY NEEDED: ">>" is 2 characters, ">" is 1 character
+    // RETURNS: Pointer to position after the separator
+    
+    switch (lexer->state)
+    {
+        case In_append:   // ">>"
+        case In_heredoc:  // "<<"
+            return pos + 2;
+        
+        case In_pipe:     // "|"
+        case In_redirect: // "<" or ">"
+        default:
+            return pos + 1;
+    }
+}
+
+/* ============================================================================
+ * CATEGORY 4: TOKEN RESOLUTION DECISION MAKING
+ * These determine WHEN to create tokens
+ * ============================================================================ */
+
+int should_resolve_token(t_lexer *lexer, int old_context)
+{
+    // PURPOSE: Decide if it's time to create a token from accumulated characters
+    // USED IN: Main tokenization loop
+    // WHY NEEDED: You need clear rules for when to "cut" tokens
+    // LOGIC: Create token when context changes indicate a boundary
+    
+    // Context changed from anything to Separator -> resolve current token
+    if (lexer->context == Separator && old_context != Separator)
+        return 1;
+    
+    // Exited quotes -> resolve the quoted token
+    if (old_context == Quoted && lexer->context == Unquoted)
+        return 1;
+    
+    return 0;
+}
+
+/* ============================================================================
+ * CATEGORY 5: PUBLIC API WRAPPER
+ * Clean interface for the rest of your shell
+ * ============================================================================ */
+
+t_list *lexer_tokenize(char *input)
+{
+    // PURPOSE: Main public function - clean interface for your shell
+    // USED BY: Your main shell loop
+    // WHY NEEDED: Hides internal lexer complexity from rest of shell
+    // RETURNS: Linked list of tokens ready for parsing
+    
+    if (!input)
+        return NULL;
+    
+    t_lexer *lexer = init_lexer(input);
+    if (!lexer)
+        return NULL;
+    
+    tokenize_input(lexer);
+    
+    // Extract token list before freeing lexer
+    t_list *tokens = lexer->tokens;
+    lexer->tokens = NULL; // Prevent free_lexer from freeing tokens
+    
+    free_lexer(lexer);
+    
+    return tokens;
+}
+
+/* ============================================================================
+ * HOW THESE FUNCTIONS WORK TOGETHER
+ * ============================================================================ */
+
+/*
+ * EXAMPLE: Processing "echo hello"
+ * 
+ * 1. lexer_tokenize("echo hello") called by main shell
+ * 2. init_lexer() sets up lexer structure
+ * 3. tokenize_input() starts main loop:
+ * 
+ *    Character 'e':
+ *    - set_state() -> In_literal
+ *    - set_context() -> Unquoted
+ *    - should_resolve_token() -> NO
+ *    - Continue...
+ * 
+ *    Character ' ' (space):
+ *    - set_state() -> In_space  
+ *    - set_context() -> Separator
+ *    - should_resolve_token() -> YES (context changed to Separator)
+ *    - resolve_and_generate_token() creates "echo" token
+ *    - skip_whitespace() moves past space
+ * 
+ *    Character 'h':
+ *    - set_state() -> In_literal
+ *    - set_context() -> Unquoted  
+ *    - Continue building "hello"...
+ * 
+ *    Character '\0':
+ *    - resolve_and_generate_token() creates "hello" token
+ *    - Add EOF token
+ * 
+ * 4. Return token list to main shell
+ */
+
+/* ============================================================================
+ * WHICH FUNCTIONS ARE ACTUALLY ESSENTIAL?
+ * ============================================================================ */
+
+/*
+ * ABSOLUTELY ESSENTIAL (you must implement these):
+ * - is_whitespace, is_quote, is_redirect, is_separator
+ * - is_valid_param_start, contains_parameter  
+ * - skip_whitespace, advance_separator
+ * - should_resolve_token
+ * - lexer_tokenize (your public API)
+ * 
+ * NICE TO HAVE (make code cleaner but not required):
+ * - is_valid_param_char (you can inline this logic)
+ * 
+ * The key insight: These functions don't add complexity - they REDUCE it
+ * by replacing repetitive conditional checks with clear, named functions.
+ */
+
+/* ============================================================================
+ * SIMPLIFIED VERSION IF YOU WANT FEWER FUNCTIONS
+ * ============================================================================ */
+
+/*
+ * If you want to minimize functions, you can inline some logic:
+ * 
+ * Instead of:
+ *   if (is_separator(c))
+ * 
+ * You can write:
+ *   if (c == ' ' || c == '\t' || c == '\n' || c == '|' || c == '<' || c == '>')
+ * 
+ * But the separate functions make your code much more readable and maintainable.
+ * 
+ * The functions I added are all "helper functions" that make the main logic
+ * cleaner and easier to understand. None of them change the core architecture
+ * you already designed.
+ */

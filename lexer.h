@@ -12,12 +12,18 @@
 // To change later
 typedef struct s_minishell
 {
-	char	**environ;
-	char	*line;
-	int		exit_s;
-	bool	signint_child;
-	bool	heredoc_sigint;
-}	t_minishell;
+    // Your existing fields...
+    
+    // Signal handling fields
+    bool    in_interactive_mode;    // true when waiting for user input
+    bool    in_heredoc;            // true when processing heredoc
+    bool    heredoc_interrupted;   // true when heredoc was interrupted by Ctrl-C
+    
+    // You can remove these if you had them before:
+    // bool signint_child;         // Remove this - unclear usage
+    // bool heredoc_sigint;        // Replace with heredoc_interrupted
+    
+} t_minishell;
 
 extern t_minishell g_minishell;
 

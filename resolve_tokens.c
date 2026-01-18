@@ -184,8 +184,6 @@ int	token_sequence_error(t_list *lst)
 			return (1);
 		}
 
-		// Must add here-doc WARNING !!!!
-
 		lst = lst->next;
 	}
 	return (0);

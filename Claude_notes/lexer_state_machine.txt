@@ -1,0 +1,498 @@
+/* ============================================================================
+ * MINISHELL LEXER: STATE MACHINE LOGIC & TOKEN RESOLUTION
+ * ============================================================================ */
+
+#include "minishell.h"
+
+/* ============================================================================
+ * PART 1: STATE MACHINE LOGIC
+ * ============================================================================ */
+
+/*
+ * The state machine determines WHAT TYPE of token we're currently reading
+ * based on the current character. It doesn't care about quotes - that's
+ * handled by the context system.
+ */
+
+void set_state(t_lexer *lexer, char current_char)
+{
+    // If we're inside quotes, state is determined by quote type
+    if (lexer->context == Quoted)
+    {
+        // Inside single quotes - everything is literal
+        if (lexer->state == In_quote)
+            return; // Stay in In_quote until closing quote
+        
+        // Inside double quotes - check for parameter expansion
+        if (lexer->state == In_double_quote)
+        {
+            if (current_char == '$' && is_valid_param_start(lexer->offset + 1))
+                lexer->state = In_param;
+            else
+                lexer->state = In_double_quote; // Stay in double quote state
+            return;
+        }
+    }
+    
+    // Unquoted context - determine state based on character
+    switch (current_char)
+    {
+        case ' ':
+        case '\t':
+        case '\n':
+            lexer->state = In_space;
+            break;
+        
+        case '|':
+            lexer->state = In_pipe;
+            break;
+        
+        case '<':
+            // Check for heredoc (<<)
+            if (*(lexer->offset + 1) == '<')
+                lexer->state = In_heredoc;
+            else
+                lexer->state = In_redirect;
+            break;
+        
+        case '>':
+            // Check for append (>>)
+            if (*(lexer->offset + 1) == '>')
+                lexer->state = In_append;
+            else
+                lexer->state = In_redirect;
+            break;
+        
+        case '\'':
+            lexer->state = In_quote;
+            break;
+        
+        case '"':
+            lexer->state = In_double_quote;
+            break;
+        
+        case '$':
+            if (is_valid_param_start(lexer->offset + 1))
+                lexer->state = In_param;
+            else
+                lexer->state = In_literal;
+            break;
+        
+        case '\0':
+            lexer->state = In_EOF;
+            break;
+        
+        default:
+            lexer->state = In_literal;
+            break;
+    }
+}
+
+/*
+ * The context system determines WHEN to generate tokens.
+ * Context changes trigger token resolution.
+ */
+
+void set_context(t_lexer *lexer, char current_char)
+{
+    int old_context = lexer->context;
+    
+    switch (current_char)
+    {
+        case '\'':
+            if (lexer->context == Unquoted)
+                lexer->context = Quoted;
+            else if (lexer->context == Quoted && lexer->state == In_quote)
+                lexer->context = Unquoted; // Closing single quote
+            // If in double quotes, single quote is literal
+            break;
+        
+        case '"':
+            if (lexer->context == Unquoted)
+                lexer->context = Quoted;
+            else if (lexer->context == Quoted && lexer->state == In_double_quote)
+                lexer->context = Unquoted; // Closing double quote
+            // If in single quotes, double quote is literal
+            break;
+        
+        case ' ':
+        case '\t':
+        case '\n':
+        case '|':
+        case '<':
+        case '>':
+        case '\0':
+            if (lexer->context == Unquoted)
+                lexer->context = Separator;
+            // If quoted, these are literal characters
+            break;
+        
+        default:
+            if (lexer->context == Separator)
+                lexer->context = Unquoted;
+            break;
+    }
+}
+
+/* ============================================================================
+ * PART 2: TOKEN RESOLUTION PROCESS
+ * ============================================================================ */
+
+/*
+ * Token resolution happens when:
+ * 1. Context changes to Separator (we hit a delimiter)
+ * 2. We reach end of input
+ * 3. We complete a quoted string
+ */
+
+void resolve_and_generate_token(t_lexer *lexer, char *token_start, char *token_end)
+{
+    // Don't create empty tokens unless it's an empty quoted string
+    if (token_start >= token_end && lexer->state != In_quote && lexer->state != In_double_quote)
+        return;
+    
+    // Extract the raw token value
+    char *raw_value = extract_token_value(token_start, token_end);
+    if (!raw_value)
+        return;
+    
+    // Determine token properties
+    int token_type = determine_token_type(raw_value, lexer->state);
+    int quote_type = determine_quote_type(lexer->state);
+    int expendable = determine_expendable(raw_value, quote_type, lexer->state);
+    
+    // Process the token value (remove quotes, handle escapes)
+    char *processed_value = process_token_value(raw_value, quote_type);
+    
+    // Create and add token
+    t_token *token = create_token(processed_value, token_type, quote_type, expendable);
+    add_token_to_list(lexer, token);
+    
+    free(raw_value);
+    if (processed_value != raw_value)
+        free(processed_value);
+}
+
+/*
+ * Token Type Determination
+ * Based on the state when the token was created
+ */
+
+int determine_token_type(char *value, int state)
+{
+    switch (state)
+    {
+        case In_pipe:
+            return Pipe;
+        
+        case In_redirect:
+            if (value[0] == '<')
+                return Redirect_In;
+            else if (value[0] == '>')
+                return Redirect_Out;
+            break;
+        
+        case In_append:
+            return Append;
+        
+        case In_heredoc:
+            return Heredoc;
+        
+        case In_EOF:
+            return End_of_file;
+        
+        case In_literal:
+        case In_quote:
+        case In_double_quote:
+        case In_param:
+        default:
+            return Word;
+    }
+    return Word;
+}
+
+/*
+ * Quote Type Determination
+ */
+
+int determine_quote_type(int state)
+{
+    switch (state)
+    {
+        case In_quote:
+            return Single_quotes;
+        case In_double_quote:
+            return Double_quotes;
+        default:
+            return No_quotes;
+    }
+}
+
+/*
+ * Expendable Determination
+ * Only unquoted tokens and double-quoted tokens with $ can be expendable
+ */
+
+int determine_expendable(char *value, int quote_type, int state)
+{
+    // Single quotes prevent all expansion
+    if (quote_type == Single_quotes)
+        return Not_expendable;
+    
+    // Check for parameter expansion indicators
+    if (state == In_param || contains_parameter(value))
+        return Expendable;
+    
+    return Not_expendable;
+}
+
+/* ============================================================================
+ * PART 3: MAIN LEXER LOOP WITH STATE MACHINE
+ * ============================================================================ */
+
+void tokenize_input(t_lexer *lexer)
+{
+    char *token_start = lexer->offset;
+    char *current_pos = lexer->offset;
+    
+    while (*current_pos)
+    {
+        char current_char = *current_pos;
+        int old_context = lexer->context;
+        
+        // Update lexer position
+        lexer->offset = current_pos;
+        
+        // Update state machine
+        set_state(lexer, current_char);
+        set_context(lexer, current_char);
+        
+        // Check if we need to resolve a token
+        if (should_resolve_token(lexer, old_context))
+        {
+            resolve_and_generate_token(lexer, token_start, current_pos);
+            
+            // Handle the separator character itself
+            if (lexer->state != In_space)
+            {
+                char *sep_start = current_pos;
+                char *sep_end = advance_separator(lexer, current_pos);
+                resolve_and_generate_token(lexer, sep_start, sep_end);
+                current_pos = sep_end - 1; // -1 because we'll increment at end of loop
+            }
+            
+            // Reset for next token
+            skip_whitespace(&current_pos);
+            token_start = current_pos;
+        }
+        
+        current_pos++;
+    }
+    
+    // Handle final token
+    if (token_start < current_pos)
+    {
+        lexer->offset = current_pos;
+        resolve_and_generate_token(lexer, token_start, current_pos);
+    }
+    
+    // Add EOF token
+    t_token *eof_token = create_token(NULL, End_of_file, No_quotes, Not_expendable);
+    add_token_to_list(lexer, eof_token);
+}
+
+/*
+ * Determines when to resolve a token based on context changes
+ */
+
+int should_resolve_token(t_lexer *lexer, int old_context)
+{
+    // Resolve when context changes to Separator
+    if (lexer->context == Separator && old_context != Separator)
+        return 1;
+    
+    // Resolve when exiting quotes
+    if (old_context == Quoted && lexer->context == Unquoted)
+        return 1;
+    
+    return 0;
+}
+
+/* ============================================================================
+ * PART 4: HELPER FUNCTIONS FOR STATE MACHINE
+ * ============================================================================ */
+
+int is_valid_param_start(char *str)
+{
+    if (!str || !*str)
+        return 0;
+    
+    // Handle special cases
+    if (*str == '?')
+        return 1; // $? is always valid
+    
+    // Parameter must start with letter or underscore
+    if (ft_isalpha(*str) || *str == '_')
+        return 1;
+    
+    return 0;
+}
+
+int contains_parameter(char *value)
+{
+    char *dollar = ft_strchr(value, '$');
+    
+    while (dollar)
+    {
+        if (is_valid_param_start(dollar + 1))
+            return 1;
+        dollar = ft_strchr(dollar + 1, '$');
+    }
+    
+    return 0;
+}
+
+char *advance_separator(t_lexer *lexer, char *pos)
+{
+    char *start = pos;
+    
+    switch (lexer->state)
+    {
+        case In_pipe:
+            return pos + 1;
+        
+        case In_redirect:
+            return pos + 1;
+        
+        case In_append:
+        case In_heredoc:
+            return pos + 2; // >> or <<
+        
+        default:
+            return pos + 1;
+    }
+}
+
+void skip_whitespace(char **pos)
+{
+    while (**pos && (**pos == ' ' || **pos == '\t' || **pos == '\n'))
+        (*pos)++;
+}
+
+char *extract_token_value(char *start, char *end)
+{
+    int len = end - start;
+    if (len <= 0)
+        return ft_strdup(""); // Empty token
+    
+    char *value = malloc(len + 1);
+    if (!value)
+        return NULL;
+    
+    ft_strncpy(value, start, len);
+    value[len] = '\0';
+    
+    return value;
+}
+
+/*
+ * Process token value - remove quotes and handle special cases
+ */
+
+char *process_token_value(char *raw_value, int quote_type)
+{
+    if (!raw_value)
+        return NULL;
+    
+    // No quotes - return as is
+    if (quote_type == No_quotes)
+        return ft_strdup(raw_value);
+    
+    // Remove surrounding quotes
+    int len = ft_strlen(raw_value);
+    if (len < 2)
+        return ft_strdup(""); // Invalid quoted string
+    
+    char *processed = malloc(len - 1);
+    if (!processed)
+        return NULL;
+    
+    ft_strncpy(processed, raw_value + 1, len - 2);
+    processed[len - 2] = '\0';
+    
+    return processed;
+}
+
+/* ============================================================================
+ * PART 5: TOKEN CREATION AND MANAGEMENT
+ * ============================================================================ */
+
+t_token *create_token(char *value, int type, int quote, int expendable)
+{
+    t_token *token = malloc(sizeof(t_token));
+    if (!token)
+        return NULL;
+    
+    token->value = value ? ft_strdup(value) : NULL;
+    token->type = type;
+    token->quote = quote;
+    token->expendable = expendable;
+    
+    return token;
+}
+
+void add_token_to_list(t_lexer *lexer, t_token *token)
+{
+    t_list *new_node = ft_lstnew(token);
+    if (!new_node)
+    {
+        free_token(token);
+        return;
+    }
+    
+    ft_lstadd_back(&lexer->tokens, new_node);
+}
+
+void free_token(t_token *token)
+{
+    if (!token)
+        return;
+    
+    if (token->value)
+        free(token->value);
+    free(token);
+}
+
+/* ============================================================================
+ * USAGE EXAMPLE
+ * ============================================================================ */
+
+/*
+ * Example of how the state machine works with input: echo "hello world" | cat
+ * 
+ * 1. 'e' -> State: In_literal, Context: Unquoted
+ * 2. 'c' -> State: In_literal, Context: Unquoted  
+ * 3. 'h' -> State: In_literal, Context: Unquoted
+ * 4. 'o' -> State: In_literal, Context: Unquoted
+ * 5. ' ' -> State: In_space, Context: Separator -> RESOLVE TOKEN "echo"
+ * 6. '"' -> State: In_double_quote, Context: Quoted
+ * 7. 'h' -> State: In_double_quote, Context: Quoted
+ * 8. 'e' -> State: In_double_quote, Context: Quoted
+ * 9. 'l' -> State: In_double_quote, Context: Quoted
+ * 10. 'l' -> State: In_double_quote, Context: Quoted
+ * 11. 'o' -> State: In_double_quote, Context: Quoted
+ * 12. ' ' -> State: In_double_quote, Context: Quoted (space inside quotes)
+ * 13. 'w' -> State: In_double_quote, Context: Quoted
+ * 14. 'o' -> State: In_double_quote, Context: Quoted
+ * 15. 'r' -> State: In_double_quote, Context: Quoted
+ * 16. 'l' -> State: In_double_quote, Context: Quoted
+ * 17. 'd' -> State: In_double_quote, Context: Quoted
+ * 18. '"' -> State: In_double_quote, Context: Unquoted -> RESOLVE TOKEN "hello world"
+ * 19. ' ' -> State: In_space, Context: Separator (skip whitespace)
+ * 20. '|' -> State: In_pipe, Context: Separator -> RESOLVE TOKEN "|"
+ * 21. ' ' -> State: In_space, Context: Separator (skip whitespace)
+ * 22. 'c' -> State: In_literal, Context: Unquoted
+ * 23. 'a' -> State: In_literal, Context: Unquoted
+ * 24. 't' -> State: In_literal, Context: Unquoted
+ * 25. '\0' -> State: In_EOF, Context: Separator -> RESOLVE TOKEN "cat", then EOF
+ */
